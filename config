@@ -4,3 +4,13 @@ Real-Estate-AI-Platform/
 ├── requirements.txt
 └── config/
     └── mapbox_token.txt  <-- (الملف الذي أضفته)
+from sqlalchemy import create_engine
+import geopandas as gpd
+def load_polygons():
+    engine = create_engine("postgresql://USER:PASSWORD@HOST:5432/DBNAME")
+    query = """
+        SELECT id, name, value, geom
+        FROM land_parcels
+    """
+    gdf = gpd.read_postgis(query, engine, geom_col="geom")
+    return gdf
