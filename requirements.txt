@@ -1,8 +1,3 @@
-Real-Estate-AI-Platform/
-├── .devcontainer/
-│   └── devcontainer.json
-├── modules/
-│   ├── __init__.py    <-- (أضف هذا الملف، اتركه فارغاً)
-│   └── db.py          <-- (الملف الذي يحتوي على بيانات العقارات)
-├── app.py             <-- (الملف الرئيسي للداش بورد)
-└── requirements.txt
+streamlit
+pandas
+plotly
