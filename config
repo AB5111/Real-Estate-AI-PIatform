@@ -1,1 +1,6 @@
-
+Real-Estate-AI-Platform/
+├── .devcontainer/
+├── app.py
+├── requirements.txt
+└── config/
+    └── mapbox_token.txt  <-- (الملف الذي أضفته)
