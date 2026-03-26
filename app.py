@@ -197,6 +197,75 @@ elif choice == "التحليلات المالية":
 # =========================
 # 4) الذكاء المكاني والخرائط – Spatial Intelligence
 # =========================
+# 4) الذكاء المكاني والخرائط – Spatial Intelligence (Mapbox + PostGIS Ready)
+# =========================
+elif choice == "الذكاء المكاني والخرائط":
+    st.title("🗺️ الذكاء المكاني – Spatial Intelligence")
+    st.write("إدارة الحدود الجغرافية والمخططات وربطها بالأصول والصكوك.")
+    # تحميل مفتاح Mapbox
+    try:
+        with open("config/mapbox_token.txt") as f:
+            mapbox_token = f.read().strip()
+        px.set_mapbox_access_token(mapbox_token)
+    except:
+        st.error("⚠️ لم يتم العثور على ملف mapbox_token.txt في مجلد config")
+        st.stop()
+    # اختيار الحي
+    district = st.selectbox("اختر الحي", districts)
+    # بيانات عقارات (محاكاة)
+    df_points = pd.DataFrame({
+        "lat": [24.774265, 24.800000, 24.760000],
+        "lon": [46.738586, 46.700000, 46.760000],
+        "اسم الأصل": ["أصل 1", "أصل 2", "أصل 3"],
+        "القيمة": [4_200_000, 3_800_000, 5_100_000],
+        "الحالة": ["سليم", "بحاجة صيانة", "مؤجر"]
+    })
+    # بيانات حدود أراضي (Polygon) — محاكاة
+    df_polygons = pd.DataFrame({
+        "اسم القطعة": ["قطعة 101", "قطعة 102"],
+        "القيمة": [2_500_000, 3_200_000],
+        "geojson": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[46.73, 24.77], [46.74, 24.77], [46.74, 24.78], [46.73, 24.78], [46.73, 24.77]]]
+                }
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[46.75, 24.76], [46.76, 24.76], [46.76, 24.77], [46.75, 24.77], [46.75, 24.76]]]
+                }
+            }
+        ]
+    })
+    # عرض مؤشرات الحي
+    c1, c2, c3 = st.columns(3)
+    c1.metric("متوسط سعر المتر", f"{sum(price_mock[district])//4} ريال")
+    c2.metric("عدد القطع المسجلة", "320 قطعة", "+24")
+    c3.metric("مؤشر الطلب", "مرتفع", "↑")
+    st.subheader("📍 مواقع العقارات على الخريطة")
+    fig_points = px.scatter_mapbox(
+        df_points,
+        lat="lat",
+        lon="lon",
+        hover_name="اسم الأصل",
+        hover_data=["القيمة", "الحالة"],
+        color="القيمة",
+        size="القيمة",
+        zoom=11,
+        height=600,
+        color_continuous_scale=px.colors.sequential.Blues
+    )
+    st.plotly_chart(fig_points, use_container_width=True)
+    st.subheader("🗂️ حدود الأراضي (Polygon Layers)")
+    for _, row in df_polygons.iterrows():
+        st.markdown(f"**{row['اسم القطعة']} – القيمة: {row['القيمة']:,} ريال**")
+        st.json(row["geojson"])
+    st.info("✔ جاهز للربط مع PostGIS — فقط استبدل بيانات المحاكاة ببيانات فعلية من قاعدة البيانات.")
+# =========================
 elif choice == "الذكاء المكاني والخرائط":
     st.title("🗺️ الذكاء المكاني – Spatial Analytics")
     st.write("إدارة الحدود الجغرافية والمخططات وربطها بالأصول والصكوك (محاكاة واجهة – تحتاج PostGIS فعلياً).")
