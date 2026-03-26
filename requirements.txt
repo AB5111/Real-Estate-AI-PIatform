@@ -1,10 +1,8 @@
-streamlit
-streamlit-option-menu
-pandas
-plotly
-sqlalchemy
-psycopg2-binary
-geopandas
-folium
-streamlit-folium
-geopy
+Real-Estate-AI-Platform/
+├── .devcontainer/
+│   └── devcontainer.json
+├── modules/
+│   ├── __init__.py    <-- (أضف هذا الملف، اتركه فارغاً)
+│   └── db.py          <-- (الملف الذي يحتوي على بيانات العقارات)
+├── app.py             <-- (الملف الرئيسي للداش بورد)
+└── requirements.txt
