@@ -46,7 +46,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # ==========================================
-# 🧠 إدارة البيانات وحفظ الحالة (Session State)
+#  إدارة البيانات وحفظ الحالة (Session State)
 # ==========================================
 # 1. تهيئة البيانات الأساسية (Data Caching للأداء)
 @st.cache_data
@@ -91,10 +91,10 @@ with st.sidebar:
         "الدور التنفيذي",
         ["System Admin", "Asset Manager", "Investment Analyst", "External Auditor"],
         format_func=lambda x: {
-            "System Admin": "🛠️ مسؤول النظام",
-            "Asset Manager": "💼 مدير الأصول",
-            "Investment Analyst": "📊 محلل استثماري",
-            "External Auditor": "🔍 مدقق خارجي"
+            "System Admin": " مسؤول النظام",
+            "Asset Manager": " مدير الأصول",
+            "Investment Analyst": " محلل استثماري",
+            "External Auditor": " مدقق خارجي"
         }[x]
     )
     st.divider()  
@@ -132,7 +132,7 @@ if choice == "لوحة القيادة التنفيذية":
     st.divider()
     c_left, c_right = st.columns([1, 1])
     with c_left:
-        st.subheader("📊 توزيع القيمة حسب نوع العقار")
+        st.subheader(" توزيع القيمة حسب نوع العقار")
         asset_type_df = pd.DataFrame({
             "نوع العقار": ["شقق", "مكاتب", "تجاري", "صناعي", "فلل"],
             "القيمة": [600, 450, 520, 300, 530]
@@ -197,7 +197,7 @@ elif choice == "التحليلات المالية":
     c2.metric("المصاريف التشغيلية", "5,400,000 ريال", "+400,000")
     c3.metric("صافي الربح التشغيلي", "12,600,000 ريال", "+1,400,000")
     st.divider()
-    tab_fin1, tab_fin2 = st.tabs(["📊 التحليل التاريخي", "🔮 محاكاة المشاريع الاستثمارية"])
+    tab_fin1, tab_fin2 = st.tabs([" التحليل التاريخي", "🔮 محاكاة المشاريع الاستثمارية"])
     with tab_fin1:
         st.subheader("تحليل الإيرادات والمصاريف عبر السنوات")
         fig_fin = px.bar(
@@ -277,7 +277,7 @@ elif choice == "نموذج التقييم الآلي AVM":
     st.title("🤖 نموذج التقييم الآلي – Automated Valuation Model")  
     col_avm_l, col_avm_r = st.columns([1.2, 1])
     with col_avm_l:
-        st.subheader("📋 مدخلات تقدير السعر العادل")
+        st.subheader(" مدخلات تقدير السعر العادل")
         with st.form("avm_form"):
             col_in1, col_in2 = st.columns(2)
             with col_in1:
@@ -288,7 +288,7 @@ elif choice == "نموذج التقييم الآلي AVM":
                 street_width = st.number_input("عرض الشارع المتاخم (م)", min_value=8.0, value=20.0)
                 age = st.number_input("عمر العقار الحالي (بالسنوات)", min_value=0.0, value=5.0)
                 quality = st.selectbox("جودة التشطيب والمواد", ["اقتصادي", "متوسط", "فاخر"])           
-            est_btn = st.form_submit_button("🧠 تشغيل خوارزمية التقييم")         
+            est_btn = st.form_submit_button(" تشغيل خوارزمية التقييم")         
             if est_btn:
                 base_price = sum(price_mock[district]) / len(price_mock[district])
                 factors = {"اقتصادي": 0.9, "متوسط": 1.0, "فاخر": 1.15}               
@@ -318,7 +318,7 @@ elif choice == "الصيانة التنبؤية":
     st.divider()
     col_m1, col_m2 = st.columns([1.5, 1])
     with col_m1:
-        st.subheader("📅 تتبع التكاليف الأسبوعي وحد الأمان للميزانية")
+        st.subheader(" تتبع التكاليف الأسبوعي وحد الأمان للميزانية")
         # إضافة خط أفق للحد الأقصى للميزانية لإعطاء طابع تحليلي
         fig_maint = go.Figure()
         fig_maint.add_trace(go.Scatter(x=maintenance_df["الأسبوع"], y=maintenance_df["تكلفة الصيانة"], name="تكلفة الصيانة", line=dict(color="#1E3A8A")))
@@ -336,7 +336,7 @@ elif choice == "الصيانة التنبؤية":
 # 7️⃣ ذكاء السوق والاستثمار
 # ==========================================
 elif choice == "ذكاء السوق والاستثمار":
-    st.title("📊 ذكاء السوق والمؤشرات التنافسية Market Intelligence")
+    st.title(" ذكاء السوق والمؤشرات التنافسية Market Intelligence")
     st.subheader("📈 حجم سوق العقارات حسب القطاع وعام الاستشراف (2020-2030)")
     market_df = pd.DataFrame({
         "السنة": list(range(2020, 2031)),
