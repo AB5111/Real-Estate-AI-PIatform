@@ -3,10 +3,13 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 from datetime import datetime
+import json
+import os
 # إعداد الصفحة
 st.set_page_config(
     layout="wide",
-    page_title="Drones Crafters – Real Estate Management Dashboard"
+    page_title="Drones Crafters – Real Estate Management Dashboard",
+    page_icon="🏢"
 )
 # --- CSS للهوية العربية والـ RTL ---
 st.markdown("""
@@ -21,6 +24,12 @@ st.markdown("""
     [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
         text-align: right !important;
         direction: RTL !important;
+    }
+    .stTextInput > div > div > input {
+        text-align: right;
+    }
+    .stSelectbox > div > div {
+        text-align: right;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -55,13 +64,22 @@ deeds_df = pd.DataFrame({
     "المساحة م²": [2500, 4300, 1800],
     "الحالة": ["ساري", "ساري", "محدث"]
 })
+# بيانات العقارات (للوحدة المكانية)
+properties_spatial = pd.DataFrame({
+    "id": [1, 2, 3, 4, 5],
+    "اسم العقار": ["برج المملكة", "مركز الرياض للمعارض", "حي الملقا سكني", "مجمع العمارية التجاري", "واحة الياسمين"],
+    "المدينة": ["الرياض", "الرياض", "الرياض", "جدة", "جدة"],
+    "lat": [24.7136, 24.7428, 24.7743, 21.5433, 21.5898],
+    "lon": [46.6763, 46.6511, 46.7386, 39.1729, 39.1743],
+    "القيمة (مليون)": [450, 320, 95, 210, 180],
+    "الحالة": ["ممتاز", "جيد", "جيد", "متوسط", "ممتاز"]
+})
 # =========================
 # القائمة الجانبية – الأدوار والوحدات
 # =========================
 with st.sidebar:
-    st.title("Drones Crafters")
+    st.title("🏢 Drones Crafters")
     st.subheader("منصة إدارة الأصول العقارية")
-    # اختيار الدور (حوكمة الوصول)
     role = st.selectbox(
         "الدور التنفيذي",
         ["System Admin", "Asset Manager", "Investment Analyst", "External Auditor"],
@@ -72,7 +90,7 @@ with st.sidebar:
             "External Auditor": "مدقق خارجي"
         }[x]
     )
-    # القائمة الرئيسية
+    # استخدام streamlit-option-menu إذا كان متاحاً
     try:
         from streamlit_option_menu import option_menu
         choice = option_menu(
@@ -104,6 +122,7 @@ with st.sidebar:
                 "ذكاء السوق والاستثمار"
             ]
         )
+
 st.write(f"🔐 الدور الحالي: **{role}**")
 st.divider()
 # =========================
@@ -130,6 +149,7 @@ if choice == "لوحة القيادة التنفيذية":
         color_discrete_sequence=px.colors.sequential.Blues
     )
     st.plotly_chart(fig_asset, use_container_width=True)
+    
     st.subheader("مؤشرات أداء المحفظة – ROI / IRR / NPV (محاكاة)")
     kpi_df = pd.DataFrame({
         "السنة": [2021, 2022, 2023, 2024],
@@ -195,100 +215,83 @@ elif choice == "التحليلات المالية":
         st.metric("NPV (تقريبي)", f"{npv:,.0f} ريال")
         st.metric("IRR (تقريبي)", f"{irr_approx:.2f}%")
 # =========================
-# 4) الذكاء المكاني والخرائط – Spatial Intelligence
-# =========================
-# 4) الذكاء المكاني والخرائط – Spatial Intelligence (Mapbox + PostGIS Ready)
+# 4) الذكاء المكاني والخرائط – Spatial Intelligence (محسن مع خريطة السعودية وخانة بحث)
 # =========================
 elif choice == "الذكاء المكاني والخرائط":
     st.title("🗺️ الذكاء المكاني – Spatial Intelligence")
     st.write("إدارة الحدود الجغرافية والمخططات وربطها بالأصول والصكوك.")
-    # تحميل مفتاح Mapbox
+    # محاولة تحميل مفتاح Mapbox من ملف أو استخدام OpenStreetMap بديل
+    mapbox_token = None
     try:
-        with open("config/mapbox_token.txt") as f:
-            mapbox_token = f.read().strip()
-        px.set_mapbox_access_token(mapbox_token)
+        if os.path.exists("config/mapbox_token.txt"):
+            with open("config/mapbox_token.txt") as f:
+                mapbox_token = f.read().strip()
+        elif "MAPBOX_TOKEN" in st.secrets:
+            mapbox_token = st.secrets["MAPBOX_TOKEN"]
     except:
-        st.error("⚠️ لم يتم العثور على ملف mapbox_token.txt في مجلد config")
-        st.stop()
-    # اختيار الحي
-    district = st.selectbox("اختر الحي", districts)
-    # بيانات عقارات (محاكاة)
-    df_points = pd.DataFrame({
-        "lat": [24.774265, 24.800000, 24.760000],
-        "lon": [46.738586, 46.700000, 46.760000],
-        "اسم الأصل": ["أصل 1", "أصل 2", "أصل 3"],
-        "القيمة": [4_200_000, 3_800_000, 5_100_000],
-        "الحالة": ["سليم", "بحاجة صيانة", "مؤجر"]
-    })
-    # بيانات حدود أراضي (Polygon) — محاكاة
-    df_polygons = pd.DataFrame({
-        "اسم القطعة": ["قطعة 101", "قطعة 102"],
-        "القيمة": [2_500_000, 3_200_000],
-        "geojson": [
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[[46.73, 24.77], [46.74, 24.77], [46.74, 24.78], [46.73, 24.78], [46.73, 24.77]]]
-                }
-            },
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[[46.75, 24.76], [46.76, 24.76], [46.76, 24.77], [46.75, 24.77], [46.75, 24.76]]]
-                }
-            }
+        pass
+    if mapbox_token:
+        px.set_mapbox_access_token(mapbox_token)
+        map_style = "mapbox://styles/mapbox/light-v11"
+    else:
+        st.warning("⚠️ لم يتم العثور على مفتاح Mapbox. سيتم استخدام خريطة OpenStreetMap بديلة.")
+        map_style = "open-street-map"
+    # ==== خانة البحث عن العقار ====
+    st.subheader("🔍 بحث عن عقار")
+    search_term = st.text_input("أدخل اسم أو رقم العقار", placeholder="مثال: برج المملكة أو 1")
+    filtered_properties = properties_spatial.copy()
+    if search_term:
+        filtered_properties = filtered_properties[
+            filtered_properties["اسم العقار"].str.contains(search_term, case=False, na=False) |
+            filtered_properties["id"].astype(str).str.contains(search_term, na=False)
         ]
-    })
-    # عرض مؤشرات الحي
-    c1, c2, c3 = st.columns(3)
-    c1.metric("متوسط سعر المتر", f"{sum(price_mock[district])//4} ريال")
-    c2.metric("عدد القطع المسجلة", "320 قطعة", "+24")
-    c3.metric("مؤشر الطلب", "مرتفع", "↑")
-    st.subheader("📍 مواقع العقارات على الخريطة")
-    fig_points = px.scatter_mapbox(
-        df_points,
+        if filtered_properties.empty:
+            st.warning("لم يتم العثور على عقار بهذا الاسم/الرقم.")
+        else:
+            st.success(f"تم العثور على {len(filtered_properties)} عقار.")
+    # عرض معلومات مختصرة عن العقارات المفلترة
+    if not filtered_properties.empty:
+        st.subheader("نتائج البحث")
+        st.dataframe(filtered_properties[["id", "اسم العقار", "المدينة", "القيمة (مليون)", "الحالة"]], use_container_width=True)
+    # ==== الخريطة التفاعلية (تظهر السعودية + نقاط العقارات) ====
+    st.subheader("🗺️ خريطة السعودية مع مواقع العقارات")
+    # إنشاء الخريطة
+    fig_map = px.scatter_mapbox(
+        filtered_properties,
         lat="lat",
         lon="lon",
-        hover_name="اسم الأصل",
-        hover_data=["القيمة", "الحالة"],
-        color="القيمة",
-        size="القيمة",
-        zoom=11,
-        height=600,
+        hover_name="اسم العقار",
+        hover_data=["المدينة", "القيمة (مليون)", "الحالة"],
+        color="القيمة (مليون)",
+        size="القيمة (مليون)",
+        size_max=20,
+        zoom=5,
+        center={"lat": 24.0, "lon": 45.0},  # وسط السعودية
+        mapbox_style=map_style,
+        title="مواقع العقارات على خريطة السعودية",
         color_continuous_scale=px.colors.sequential.Blues
     )
-    st.plotly_chart(fig_points, use_container_width=True)
-    st.subheader("🗂️ حدود الأراضي (Polygon Layers)")
-    for _, row in df_polygons.iterrows():
-        st.markdown(f"**{row['اسم القطعة']} – القيمة: {row['القيمة']:,} ريال**")
-        st.json(row["geojson"])
+    fig_map.update_layout(height=600)
+    st.plotly_chart(fig_map, use_container_width=True)
+    # ==== إضافة معلومات إضافية عن العقار المحدد (اختياري) ====
+    if not filtered_properties.empty and len(filtered_properties) == 1:
+        prop = filtered_properties.iloc[0]
+        st.subheader(f"تفاصيل العقار: {prop['اسم العقار']}")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("القيمة (مليون ريال)", f"{prop['القيمة (مليون)']:.1f}")
+        col2.metric("الحالة", prop["الحالة"])
+        col3.metric("المدينة", prop["المدينة"])
+    # ==== عرض طبقات إضافية (حدود أراضي وهمية) ====
+    st.subheader("🗂️ حدود الأراضي (نماذج) – يمكن ربطها مع PostGIS")
+    # مثال على مضلع وهمي (يمكن استبدالها ببيانات فعلية)
+    polygons = [
+        {"name": "قطعة 101", "coordinates": [[46.73, 24.77], [46.74, 24.77], [46.74, 24.78], [46.73, 24.78], [46.73, 24.77]]},
+        {"name": "قطعة 102", "coordinates": [[46.75, 24.76], [46.76, 24.76], [46.76, 24.77], [46.75, 24.77], [46.75, 24.76]]},
+    ]
+    for p in polygons:
+        st.write(f"**{p['name']}**")
+        st.json(p["coordinates"])
     st.info("✔ جاهز للربط مع PostGIS — فقط استبدل بيانات المحاكاة ببيانات فعلية من قاعدة البيانات.")
-# =========================
-elif choice == "الذكاء المكاني والخرائط":
-    st.title("🗺️ الذكاء المكاني – Spatial Analytics")
-    st.write("إدارة الحدود الجغرافية والمخططات وربطها بالأصول والصكوك (محاكاة واجهة – تحتاج PostGIS فعلياً).")
-    district = st.selectbox("اختر الحي", districts)
-    plot_data = pd.DataFrame({
-        "المخطط": ["مخطط 1", "مخطط 2", "مخطط 3", "مخطط 4"],
-        "السعر للمتر": price_mock[district]
-    })
-    c1, c2, c3 = st.columns(3)
-    c1.metric("متوسط سعر المتر", f"{sum(price_mock[district])//4} ريال")
-    c2.metric("عدد القطع المسجلة", "320 قطعة", "+24")
-    c3.metric("مؤشر الطلب في الحي", "مرتفع", "↑")
-    st.subheader(f"اتجاهات الأسعار في حي {district}")
-    fig_area = px.area(
-        plot_data,
-        x="المخطط",
-        y="السعر للمتر",
-        title=f"اتجاهات سعر المتر في {district}",
-        line_shape="spline",
-        color_discrete_sequence=['#1E3A8A']
-    )
-    st.plotly_chart(fig_area, use_container_width=True)
-    st.info("يمكن ربط هذه الواجهة لاحقاً بطبقات خرائط فعلية (PostGIS / Mapbox / ArcGIS).")
 # =========================
 # 5) نموذج التقييم الآلي AVM – Automated Valuation
 # =========================
@@ -358,7 +361,6 @@ elif choice == "الصيانة التنبؤية":
         title="توزيع فئات الصيانة"
     )
     st.plotly_chart(fig_pie, use_container_width=True)
-
     st.info("يمكن لاحقاً ربط هذه الوحدة بنماذج تعلم آلي تتنبأ بالأعطال بناءً على بيانات تاريخية.")
 # =========================
 # 7) ذكاء السوق والاستثمار – Market Intelligence
@@ -381,8 +383,6 @@ elif choice == "ذكاء السوق والاستثمار":
         title="حجم سوق العقار (محاكاة – مليار ريال)"
     )
     st.plotly_chart(fig_market, use_container_width=True)
-
     st.subheader("مؤشر نمو السوق (CAGR تقريبي)")
     st.metric("CAGR تقديري 2025–2030", "4.1%", "+0.3%")
-
     st.caption("يمكن لاحقاً ربط هذه الوحدة بمصادر بيانات خارجية (Market Data Providers / Open Data).")
