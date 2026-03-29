@@ -7,11 +7,11 @@ from datetime import datetime
 import time
 
 # ==========================================
-# إعدادات الصفحة المتقدمة
+# إعدادات الصفحة
 # ==========================================
 st.set_page_config(
     layout="wide",
-    page_title="Drones Crafters - Real Estate Enterprise",
+    page_title="Drones Crafters - Real Estate Management",
     page_icon="🏢",
     initial_sidebar_state="expanded"
 )
@@ -20,7 +20,7 @@ st.set_page_config(
 # تهيئة الحالة
 # ==========================================
 def init():
-    # الإعدادات العامة
+    # إعدادات الواجهة
     if 'dark_mode' not in st.session_state:
         st.session_state.dark_mode = False
     if 'language' not in st.session_state:
@@ -35,14 +35,12 @@ def init():
         st.session_state.selected_menu = "الرئيسية"
     if 'notifications' not in st.session_state:
         st.session_state.notifications = []
-    if 'sidebar_collapsed' not in st.session_state:
-        st.session_state.sidebar_collapsed = False
 
-    # بيانات الجهات
+    # بيانات الجهات (بدون حقل plan غير موجود)
     if 'tenants' not in st.session_state:
         st.session_state.tenants = {
-            "tenant_1": {"name": "شركة أصول الرياض", "logo": "🏢", "plan": "Enterprise"},
-            "tenant_2": {"name": "مجموعة الخليج العقارية", "logo": "🏭", "plan": "Professional"}
+            "tenant_1": {"name": "شركة أصول الرياض", "logo": "🏢"},
+            "tenant_2": {"name": "مجموعة الخليج العقارية", "logo": "🏭"}
         }
 
     # بيانات المستخدمين
@@ -53,7 +51,7 @@ def init():
             "viewer@assets.com": {"password": "view", "role": "مشاهد", "tenant": "tenant_1"}
         }
 
-    # بيانات العقار الرئيسية
+    # بيانات العقار الأساسية
     if 'property_data' not in st.session_state:
         st.session_state.property_data = {
             "deeds": pd.DataFrame({
@@ -65,8 +63,7 @@ def init():
             }),
             "images": [
                 "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400",
-                "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=400",
-                "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400"
+                "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=400"
             ],
             "location": {"lat": 24.774265, "lon": 46.738586},
             "costs": pd.DataFrame({
@@ -117,15 +114,18 @@ def t(ar, en=None):
 def toggle_theme():
     st.session_state.dark_mode = not st.session_state.dark_mode
     add_notification(f"الوضع {'المظلم' if st.session_state.dark_mode else 'الفاتح'}", "info")
+    st.rerun()
 
 def toggle_lang():
     st.session_state.language = 'en' if st.session_state.language == 'ar' else 'ar'
     add_notification(f"Language: {'English' if st.session_state.language == 'en' else 'العربية'}", "info")
+    st.rerun()
 
 def logout():
     st.session_state.logged_in = False
     st.session_state.user_role = None
     add_notification("تم تسجيل الخروج", "info")
+    st.rerun()
 
 def get_data():
     return st.session_state.property_data
@@ -133,9 +133,10 @@ def get_data():
 def update_data(key, value):
     st.session_state.property_data[key] = value
     add_notification(f"تم تحديث {key}", "success")
+    st.rerun()
 
 # ==========================================
-# CSS احترافي (وضع مظلم/فاتح مع أنيميشن)
+# CSS
 # ==========================================
 def load_css():
     bg = "#0a0c10" if st.session_state.dark_mode else "#f4f7fc"
@@ -145,49 +146,34 @@ def load_css():
     sidebar_bg = "#111827" if st.session_state.dark_mode else "#ffffff"
     return f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * {{ font-family: 'Cairo', sans-serif; direction: rtl; text-align: right; }}
     .stApp {{ background-color: {bg}; color: {text}; }}
     section[data-testid="stSidebar"] {{ background-color: {sidebar_bg}; }}
     div[data-testid="stMetric"] {{
-        background: linear-gradient(135deg, {card_bg}, {card_bg}dd);
-        padding: 1.2rem;
-        border-radius: 1.2rem;
+        background: {card_bg};
+        padding: 1rem;
+        border-radius: 1rem;
         border-right: 5px solid {border};
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: 0.2s;
     }}
-    div[data-testid="stMetric"]:hover {{ transform: translateY(-5px); }}
+    div[data-testid="stMetric"]:hover {{ transform: translateY(-3px); }}
     .stButton>button {{
         background: linear-gradient(90deg, #1e3a8a, #3b82f6);
         color: white;
         border: none;
         border-radius: 0.75rem;
         font-weight: 600;
-        transition: 0.2s;
-    }}
-    .stButton>button:hover {{ transform: scale(1.02); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }}
-    .custom-card {{
-        background-color: {card_bg};
-        border-radius: 1rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }}
     </style>
     """
 
 # ==========================================
-# شاشة تسجيل الدخول المتطورة
+# شاشة تسجيل الدخول
 # ==========================================
 def login_screen():
-    st.markdown("""
-        <div style='text-align:center; padding:2rem;'>
-            <h1>🏢 Drones Crafters</h1>
-            <h3>نظام إدارة العقارات الذكي</h3>
-            <p>منصة متكاملة لإدارة الأصول العقارية</p>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center'><h1>🏢 Drones Crafters</h1><h3>نظام إدارة العقارات الذكي</h3></div>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
         email = st.text_input(t("البريد الإلكتروني", "Email"))
@@ -204,13 +190,13 @@ def login_screen():
         st.caption("Demo: admin@drones.com / admin123  |  manager@assets.com / pass1")
 
 # ==========================================
-# الشريط العلوي (مع أيقونات وإشعارات)
+# الشريط العلوي
 # ==========================================
 def top_bar():
     tenant = st.session_state.tenants[st.session_state.current_tenant]
-    col1, col2, col3, col4, col5, col6, col7 = st.columns([2,1,1,1,1,1,1])
+    col1, col2, col3, col4, col5, col6 = st.columns([2.5,1,1,1,1,1])
     with col1:
-        st.markdown(f"### {tenant.get('logo','🏢')} {tenant['name']}  <span style='font-size:0.8rem;'>({tenant['plan']})</span>", unsafe_allow_html=True)
+        st.markdown(f"### {tenant.get('logo','🏢')} {tenant['name']}")
     with col2:
         st.button("🌙" if not st.session_state.dark_mode else "☀️", on_click=toggle_theme, help=t("المظهر"))
     with col3:
@@ -223,10 +209,6 @@ def top_bar():
         st.markdown(f"👤 {st.session_state.user_role}")
     with col6:
         st.button("🚪", on_click=logout, help=t("خروج"))
-    with col7:
-        if st.button("📊", help=t("تحديث البيانات")):
-            add_notification("تم تحديث البيانات", "success")
-            st.rerun()
     if st.session_state.get("show_notif", False):
         with st.expander(t("الإشعارات", "Notifications"), expanded=True):
             for n in st.session_state.notifications[:10]:
@@ -237,7 +219,7 @@ def top_bar():
                 st.rerun()
 
 # ==========================================
-# القائمة الجانبية الاحترافية (مجموعات وأيقونات)
+# القائمة الجانبية (مجموعات احترافية)
 # ==========================================
 def sidebar_menu():
     with st.sidebar:
@@ -251,7 +233,7 @@ def sidebar_menu():
                 st.session_state.current_tenant = sel
                 st.rerun()
         st.divider()
-        # تصنيف الخدمات
+        # مجموعات الخدمات
         menu_groups = {
             "📊 لوحة التحكم": ["الرئيسية"],
             "📄 المستندات والموقع": ["إدارة الصكوك", "الرفع المساحي", "معرض الصور", "الموقع على الخريطة"],
@@ -261,28 +243,28 @@ def sidebar_menu():
             "📈 التقارير والمخاطر": ["التقارير الذكية", "المخاطر والامتثال"],
             "🔔 النظام": ["مركز الإشعارات"]
         }
-        # تحديد الخدمات المسموحة حسب الدور
-        allowed_services = []
+        # تحديد الخدمات حسب الدور
+        allowed = []
         if st.session_state.user_role == "مشاهد":
-            allowed_services = ["الرئيسية", "إدارة الصكوك", "الموقع على الخريطة", "التقارير الذكية", "مركز الإشعارات"]
+            allowed = ["الرئيسية", "إدارة الصكوك", "الموقع على الخريطة", "التقارير الذكية", "مركز الإشعارات"]
         else:
             for group, items in menu_groups.items():
-                allowed_services.extend(items)
-        # عرض القائمة مع أيقونات
+                allowed.extend(items)
+        # عرض المجموعات
         for group, items in menu_groups.items():
-            filtered = [i for i in items if i in allowed_services]
+            filtered = [i for i in items if i in allowed]
             if filtered:
                 st.markdown(f"**{group}**")
                 for item in filtered:
                     if st.button(f"  {item}", use_container_width=True, key=item):
                         st.session_state.selected_menu = item
                         st.rerun()
-                st.markdown("<hr style='margin:0.5rem 0;'>", unsafe_allow_html=True)
+                st.markdown("<hr style='margin:0.3rem 0;'>", unsafe_allow_html=True)
         st.divider()
-        st.caption("© 2025 Drones Crafters - v8.0 Enterprise")
+        st.caption("© 2025 Drones Crafters - v9.0")
 
 # ==========================================
-# وظائف الأقسام (كلها محسنة)
+# وظائف الخدمات
 # ==========================================
 def render_dashboard():
     data = get_data()
@@ -317,9 +299,9 @@ def render_survey():
 def render_images():
     data = get_data()
     st.subheader("🖼️ معرض الصور")
-    cols = st.columns(3)
-    for i, img in enumerate(data["images"]):
-        with cols[i % 3]:
+    cols = st.columns(2)
+    for i, img in enumerate(data["images"][:2]):
+        with cols[i]:
             st.image(img, use_container_width=True)
     st.file_uploader("إضافة صورة", type=["jpg","png"])
 
@@ -328,11 +310,10 @@ def render_location():
     st.subheader("📍 الموقع على الخريطة")
     st.map(pd.DataFrame([data["location"]]))
     with st.expander("تعديل"):
-        lat = st.number_input("Lat", value=data["location"]["lat"])
-        lon = st.number_input("Lon", value=data["location"]["lon"])
+        lat = st.number_input("Latitude", value=data["location"]["lat"])
+        lon = st.number_input("Longitude", value=data["location"]["lon"])
         if st.button("تحديث"):
             update_data("location", {"lat":lat, "lon":lon})
-            st.rerun()
 
 def render_costs():
     data = get_data()
@@ -355,7 +336,8 @@ def render_requirements():
     edited = st.data_editor(data["requirements"], num_rows="dynamic")
     if st.button("حفظ"):
         update_data("requirements", edited)
-    progress = sum(data["requirements"]["الحالة"] == "تم") / len(data["requirements"])
+    done = sum(data["requirements"]["الحالة"] == "تم")
+    progress = done / len(data["requirements"]) if len(data["requirements"])>0 else 0
     st.progress(progress, text=f"نسبة الإنجاز: {int(progress*100)}%")
 
 def render_area_price():
@@ -377,7 +359,6 @@ def render_ai_analysis():
     st.warning("🔧 صيانة متوقعة خلال 3 أشهر")
     if st.button("تحديث التحليل"):
         update_data("ai_analysis", {"value": estimated})
-        st.success("تم التحديث")
 
 def render_reports():
     data = get_data()
@@ -415,7 +396,6 @@ def render_maintenance():
             new=pd.DataFrame({"التاريخ":[date],"العمل":[work],"التكلفة":[cost],"الحالة":[status]})
             updated=pd.concat([data["maintenance"],new],ignore_index=True)
             update_data("maintenance",updated)
-            st.rerun()
 
 def render_risk():
     st.subheader("⚠️ المخاطر والامتثال")
@@ -454,6 +434,7 @@ def main():
     top_bar()
     sidebar_menu()
     menu = st.session_state.selected_menu
+    # خريطة الخدمات
     if menu == "الرئيسية":
         render_dashboard()
     elif menu == "إدارة الصكوك":
