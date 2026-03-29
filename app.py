@@ -163,6 +163,13 @@ def load_css():
         border-radius: 0.75rem;
         font-weight: 600;
     }}
+    .quick-icon {{
+        text-align: center;
+        padding: 5px;
+        border-radius: 10px;
+        background-color: {card_bg};
+        margin: 2px;
+    }}
     </style>
     """
 
@@ -187,7 +194,7 @@ def login_screen():
         st.caption("Demo: admin@drones.com / admin123  |  manager@assets.com / pass1")
 
 # ==========================================
-# الشريط العلوي
+# الشريط العلوي (الإعدادات)
 # ==========================================
 def top_bar():
     tenant = st.session_state.tenants[st.session_state.current_tenant]
@@ -216,7 +223,38 @@ def top_bar():
                 st.rerun()
 
 # ==========================================
-# القائمة الجانبية (14 خدمة - تظهر جميعها)
+# شريط الخدمات السريع (أعلى الصفحة)
+# ==========================================
+def quick_services_bar():
+    st.markdown("### ⚡ الخدمات السريعة")
+    # تعريف الخدمات مع أيقونات
+    quick_services = [
+        ("🏠 الرئيسية", "الرئيسية"),
+        ("📜 صكوك", "إدارة الصكوك"),
+        ("🗺️ رفع مساحي", "الرفع المساحي"),
+        ("🖼️ صور", "معرض الصور"),
+        ("📍 الموقع", "الموقع على الخريطة"),
+        ("💰 تكاليف", "التكاليف والفواتير"),
+        ("✅ متطلبات", "متطلبات العقار"),
+        ("📊 سعر المتر", "سعر المتر بالمنطقة"),
+        ("🤖 AI", "تحليل الذكاء الاصطناعي"),
+        ("📄 عقود", "إدارة العقود"),
+        ("🔧 صيانة", "الصيانة"),
+        ("⚠️ مخاطر", "المخاطر والامتثال"),
+        ("📑 تقارير", "التقارير الذكية"),
+        ("🔔 إشعارات", "مركز الإشعارات")
+    ]
+    # تقسيم الأزرار إلى صفوف (مثلاً 7 أزرار في كل صف)
+    cols = st.columns(7)
+    for i, (label, key) in enumerate(quick_services):
+        with cols[i % 7]:
+            if st.button(label, key=f"quick_{key}", use_container_width=True):
+                st.session_state.selected_menu = key
+                st.rerun()
+    st.divider()
+
+# ==========================================
+# القائمة الجانبية (14 خدمة)
 # ==========================================
 def sidebar_menu():
     with st.sidebar:
@@ -247,7 +285,6 @@ def sidebar_menu():
             ("📑 12. التقارير الذكية", "التقارير الذكية"),
             ("🔔 13. مركز الإشعارات", "مركز الإشعارات")
         ]
-        # تحديد الخدمات حسب الدور
         allowed_keys = []
         if st.session_state.user_role == "مشاهد":
             allowed_keys = ["الرئيسية", "إدارة الصكوك", "الموقع على الخريطة", "التقارير الذكية", "مركز الإشعارات"]
@@ -262,7 +299,7 @@ def sidebar_menu():
         st.caption("© 2025 Drones Crafters - جميع الخدمات (14) معروضة")
 
 # ==========================================
-# وظائف الخدمات (كل خدمة مع ميزاتها)
+# وظائف الخدمات (نفس ما سبق، مختصرة للطول)
 # ==========================================
 def render_dashboard():
     data = get_data()
@@ -284,9 +321,9 @@ def render_deeds():
     st.subheader("📜 الخدمة 1: إدارة الصكوك")
     data = get_data()
     edited = st.data_editor(data["deeds"], use_container_width=True, num_rows="dynamic")
-    if st.button("💾 حفظ بيانات الصكوك"):
+    if st.button("💾 حفظ"):
         update_data("deeds", edited)
-    st.file_uploader("رفع ملف صك (PDF/صورة)", type=["pdf", "jpg", "png"])
+    st.file_uploader("رفع ملف صك", type=["pdf","jpg","png"])
 
 def render_survey():
     st.subheader("🗺️ الخدمة 2: الرفع المساحي")
@@ -341,14 +378,14 @@ def render_location():
     st.subheader("📍 الخدمة 4: الموقع على الخريطة")
     data = get_data()
     st.map(pd.DataFrame([data["location"]]))
-    with st.expander("تعديل الموقع"):
+    with st.expander("تعديل"):
         lat = st.number_input("خط العرض", value=data["location"]["lat"], format="%.6f")
         lon = st.number_input("خط الطول", value=data["location"]["lon"], format="%.6f")
         if st.button("تحديث"):
             update_data("location", {"lat": lat, "lon": lon})
 
 def render_costs():
-    st.subheader("💰 الخدمة 5: تكاليف العقار (فواتير وصيانة)")
+    st.subheader("💰 الخدمة 5: تكاليف العقار")
     data = get_data()
     tab1, tab2 = st.tabs(["فواتير", "صيانة"])
     with tab1:
@@ -366,22 +403,19 @@ def render_requirements():
     st.subheader("✅ الخدمة 6: متطلبات العقار")
     data = get_data()
     edited = st.data_editor(data["requirements"], num_rows="dynamic")
-    if st.button("حفظ المتطلبات"):
+    if st.button("حفظ"):
         update_data("requirements", edited)
     done = sum(data["requirements"]["الحالة"] == "تم")
     progress = done / len(data["requirements"]) if len(data["requirements"])>0 else 0
     st.progress(progress, text=f"نسبة الإنجاز: {int(progress*100)}%")
 
 def render_area_price():
-    st.subheader("📊 الخدمة 7: سعر المتر في المنطقة")
+    st.subheader("📊 الخدمة 7: سعر المتر")
     data = get_data()
     new_price = st.number_input("سعر المتر (ريال)", value=data["area_price"], step=100)
     if st.button("تحديث"):
         update_data("area_price", new_price)
-    hist = pd.DataFrame({
-        "الشهر": ["يناير", "فبراير", "مارس", "أبريل"],
-        "السعر": [4000, 4150, new_price, new_price+50]
-    })
+    hist = pd.DataFrame({"الشهر": ["يناير","فبراير","مارس","أبريل"], "السعر": [4000,4150,new_price,new_price+50]})
     fig = px.line(hist, x="الشهر", y="السعر", markers=True)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -412,10 +446,10 @@ def render_maintenance():
             work = st.text_input("العمل")
             cost = st.number_input("التكلفة", min_value=0)
         with col2:
-            status = st.selectbox("الحالة", ["قيد التنفيذ", "تم", "معلق"])
+            status = st.selectbox("الحالة", ["قيد التنفيذ","تم","معلق"])
             date = st.date_input("التاريخ")
         if st.form_submit_button("إضافة"):
-            new = pd.DataFrame({"التاريخ":[date], "العمل":[work], "التكلفة":[cost], "الحالة":[status]})
+            new = pd.DataFrame({"التاريخ":[date],"العمل":[work],"التكلفة":[cost],"الحالة":[status]})
             updated = pd.concat([data["maintenance"], new], ignore_index=True)
             update_data("maintenance", updated)
 
@@ -425,9 +459,9 @@ def render_risk():
     fig = px.bar(risks, x="الخطر", y="النقطة", color="النقطة")
     st.plotly_chart(fig, use_container_width=True)
     licenses = pd.DataFrame({
-        "الترخيص": ["رخصة بناء", "رخصة تشغيل", "دفاع مدني"],
-        "تاريخ الانتهاء": ["2025-06-01", "2024-12-31", "2024-10-20"],
-        "الحالة": ["ساري", "ينتهي قريباً", "منتهي"]
+        "الترخيص": ["رخصة بناء","رخصة تشغيل","دفاع مدني"],
+        "تاريخ الانتهاء": ["2025-06-01","2024-12-31","2024-10-20"],
+        "الحالة": ["ساري","ينتهي قريباً","منتهي"]
     })
     st.dataframe(licenses)
     if any(licenses["الحالة"] == "منتهي"):
@@ -436,7 +470,7 @@ def render_risk():
 def render_reports():
     st.subheader("📑 الخدمة 12: التقارير الذكية")
     data = get_data()
-    report = st.selectbox("نوع التقرير", ["ملخص العقار", "التكاليف", "المتطلبات"])
+    report = st.selectbox("نوع التقرير", ["ملخص العقار","التكاليف","المتطلبات"])
     if report == "ملخص العقار":
         st.dataframe(data["deeds"])
     elif report == "التكاليف":
@@ -467,9 +501,9 @@ def main():
         return
     st.markdown(load_css(), unsafe_allow_html=True)
     top_bar()
+    quick_services_bar()  # شريط الخدمات السريعة أعلى الصفحة
     sidebar_menu()
     menu = st.session_state.selected_menu
-    # خريطة الخدمات
     if menu == "الرئيسية":
         render_dashboard()
     elif menu == "إدارة الصكوك":
