@@ -4,192 +4,229 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime, timedelta
-import random
 import json
 import io
+import random
+
+# محاولة استيراد sklearn للتنبؤ (اختياري)
+try:
+    from sklearn.linear_model import LinearRegression
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
 
 # ==========================================
-# 1. إعدادات الصفحة الأساسية
+# إعدادات الصفحة
 # ==========================================
-st.set_page_config(
-    layout="wide",
-    page_title="Drones Crafters - Real Estate Enterprise Suite",
-    page_icon="🏢",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(layout="wide", page_title="Drones Crafters - Real Estate Enterprise", page_icon="🏢", initial_sidebar_state="expanded")
 
 # ==========================================
-# 2. تهيئة حالة الجلسة (Session State)
+# تهيئة الحالة المتقدمة
 # ==========================================
-def init_session():
-    # الإعدادات العامة
-    if 'dark_mode' not in st.session_state:
-        st.session_state.dark_mode = False
-    if 'language' not in st.session_state:
-        st.session_state.language = 'ar'  # ar or en
-    if 'notifications' not in st.session_state:
-        st.session_state.notifications = []
-    if 'current_tenant' not in st.session_state:
-        st.session_state.current_tenant = 'tenant_1'
-    if 'selected_service' not in st.session_state:
-        st.session_state.selected_service = "Dashboard"
-    if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
-    if 'user_role' not in st.session_state:
-        st.session_state.user_role = None
-    # بيانات العقار (المحاكاة)
-    if 'property_data' not in st.session_state:
-        st.session_state.property_data = {
-            "deeds": pd.DataFrame({
-                "رقم الصك": ["123/أ", "456/ب"],
-                "المالك": ["شركة أصول الرياض", "صندوق الاستثمار"],
-                "الحي": ["الملقا", "الياسمين"],
-                "المساحة (م²)": [2500, 4300],
-                "تاريخ الإصدار": ["2020-01-01", "2021-03-15"]
-            }),
-            "images": [
-                "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=300",
-                "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=300"
-            ],
-            "location": {"lat": 24.774265, "lon": 46.738586},
-            "survey_polygon": [
-                [46.735, 24.772],
-                [46.742, 24.772],
-                [46.742, 24.778],
-                [46.735, 24.778],
-                [46.735, 24.772]
-            ],
-            "costs": pd.DataFrame({
-                "التاريخ": ["2024-01-15", "2024-02-20"],
-                "النوع": ["فواتير", "صيانة"],
-                "المبلغ": [12000, 3500],
-                "الوصف": ["كهرباء", "إصلاح مكيف"]
-            }),
-            "maintenance": pd.DataFrame({
-                "التاريخ": ["2024-01-10", "2024-02-25"],
-                "العمل": ["فحص دوري", "تبديل سباكة"],
-                "التكلفة": [2000, 4500],
-                "الحالة": ["تم", "قيد التنفيذ"]
-            }),
-            "requirements": pd.DataFrame({
-                "المتطلب": ["تحديد المخطط", "رخصة بناء"],
-                "الأولوية": ["عالية", "متوسطة"],
-                "الموعد": ["2024-06-01", "2024-07-15"],
-                "الحالة": ["قيد التنفيذ", "معلق"]
-            }),
-            "area_price": 4200,  # سعر المتر في المنطقة
-            "ai_analysis": {}     # سيتم ملؤه لاحقاً
-        }
-    # بيانات الجهات (المستخدمين)
-    if 'tenants' not in st.session_state:
-        st.session_state.tenants = {
-            "tenant_1": {"name": "شركة أصول الرياض", "role": "owner"},
-            "tenant_2": {"name": "مجموعة الخليج العقارية", "role": "owner"}
-        }
-    if 'users' not in st.session_state:
-        st.session_state.users = {
-            "admin@drones.com": {"password": "admin123", "role": "SuperAdmin", "tenant": None},
-            "owner1@assets.com": {"password": "pass1", "role": "TenantAdmin", "tenant": "tenant_1"},
-            "viewer1@assets.com": {"password": "view", "role": "Viewer", "tenant": "tenant_1"}
-        }
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+if 'language' not in st.session_state:
+    st.session_state.language = 'ar'
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_role' not in st.session_state:
+    st.session_state.user_role = None
+if 'current_tenant' not in st.session_state:
+    st.session_state.current_tenant = 'tenant_1'
+if 'selected_service' not in st.session_state:
+    st.session_state.selected_service = "لوحة القيادة"
+if 'notifications' not in st.session_state:
+    st.session_state.notifications = []
+if 'auto_refresh' not in st.session_state:
+    st.session_state.auto_refresh = False
+if 'last_update' not in st.session_state:
+    st.session_state.last_update = datetime.now()
 
-init_session()
+# بيانات الجهات والمستخدمين (محاكاة)
+if 'tenants' not in st.session_state:
+    st.session_state.tenants = {
+        "tenant_1": {"name": "شركة أصول الرياض", "plan": "Enterprise", "logo": "🏢"},
+        "tenant_2": {"name": "مجموعة الخليج العقارية", "plan": "Professional", "logo": "🏭"}
+    }
+if 'users' not in st.session_state:
+    st.session_state.users = {
+        "admin@drones.com": {"password": "admin123", "role": "SuperAdmin", "tenant": None},
+        "manager1@assets.com": {"password": "pass1", "role": "TenantAdmin", "tenant": "tenant_1"},
+        "viewer1@assets.com": {"password": "view", "role": "Viewer", "tenant": "tenant_1"},
+    }
+
+# بيانات العقار الرئيسية (محاكاة)
+if 'property_data' not in st.session_state:
+    # بيانات الصكوك
+    deeds_df = pd.DataFrame({
+        "رقم الصك": ["123/أ", "456/ب", "789/ج"],
+        "المالك": ["شركة أصول الرياض", "صندوق الاستثمار", "شركة التطوير"],
+        "الحي": ["الملقا", "الياسمين", "النرجس"],
+        "المساحة (م²)": [2500, 4300, 1800],
+        "تاريخ الإصدار": ["2020-01-01", "2021-03-15", "2022-06-20"],
+        "الحالة": ["ساري", "ساري", "محدث"]
+    })
+    # بيانات التكاليف
+    costs_df = pd.DataFrame({
+        "التاريخ": pd.date_range(start="2024-01-01", periods=6, freq='M'),
+        "النوع": ["فواتير", "صيانة", "فواتير", "صيانة", "فواتير", "صيانة"],
+        "المبلغ": [12000, 3500, 13000, 4200, 12500, 3800],
+        "الوصف": ["كهرباء", "إصلاح مكيف", "ماء", "دهان", "غاز", "سباكة"]
+    })
+    # بيانات الصيانة
+    maintenance_df = pd.DataFrame({
+        "التاريخ": pd.date_range(start="2024-01-15", periods=5, freq='M'),
+        "العمل": ["فحص دوري", "تبديل سباكة", "صيانة مكيفات", "دهان واجهة", "تنسيق حديقة"],
+        "التكلفة": [2000, 4500, 3000, 8000, 2500],
+        "الحالة": ["تم", "تم", "قيد التنفيذ", "مجدول", "معلق"]
+    })
+    # متطلبات العقار
+    requirements_df = pd.DataFrame({
+        "المتطلب": ["تحديد المخطط", "رخصة بناء", "تأمين ضد الحريق", "تحديث الصك"],
+        "الأولوية": ["عالية", "عالية", "متوسطة", "منخفضة"],
+        "الموعد": ["2024-06-01", "2024-07-15", "2024-08-01", "2024-12-31"],
+        "الحالة": ["قيد التنفيذ", "معلق", "لم يبدأ", "قيد التنفيذ"]
+    })
+    # صور (URLs)
+    images = [
+        "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=300",
+        "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=300",
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=300"
+    ]
+    # موقع العقار (إحداثيات)
+    location = {"lat": 24.774265, "lon": 46.738586}
+    # مضلع المساحة (للرفع المساحي)
+    survey_polygon = [
+        [46.735, 24.772],
+        [46.742, 24.772],
+        [46.742, 24.778],
+        [46.735, 24.778],
+        [46.735, 24.772]
+    ]
+    # سعر المتر في المنطقة (تاريخي)
+    area_price_history = pd.DataFrame({
+        "التاريخ": pd.date_range(start="2023-01-01", periods=8, freq='M'),
+        "السعر": [3800, 3900, 3950, 4100, 4200, 4300, 4450, 4500]
+    })
+    # عقود الإيجار
+    contracts_df = pd.DataFrame({
+        "المستأجر": ["شركة الأفق", "مؤسسة البناء", "فردي - أحمد"],
+        "العقار": ["برج الأعمال - ط3", "مجمع الريان - محل 5", "فيلا الياسمين"],
+        "تاريخ البدء": ["2024-01-01", "2024-02-01", "2024-03-01"],
+        "تاريخ الانتهاء": ["2025-01-01", "2025-02-01", "2025-03-01"],
+        "الإيجار الشهري": [45000, 32000, 12000]
+    })
+
+    st.session_state.property_data = {
+        "deeds": deeds_df,
+        "costs": costs_df,
+        "maintenance": maintenance_df,
+        "requirements": requirements_df,
+        "images": images,
+        "location": location,
+        "survey_polygon": survey_polygon,
+        "area_price_history": area_price_history,
+        "current_area_price": area_price_history["السعر"].iloc[-1],
+        "contracts": contracts_df,
+        "ai_analysis": {}
+    }
 
 # ==========================================
-# 3. دوال مساعدة
+# دوال مساعدة متقدمة
 # ==========================================
-def add_notification(msg, type="info"):
+def add_notification(msg, typ="info"):
     st.session_state.notifications.insert(0, {
         "message": msg,
-        "type": type,
+        "type": typ,
         "time": datetime.now().strftime("%H:%M:%S"),
         "read": False
     })
     st.session_state.notifications = st.session_state.notifications[:20]
 
 def t(ar, en=None):
-    if en is None:
-        en = ar
-    return ar if st.session_state.language == 'ar' else en
+    return ar if st.session_state.language == 'ar' else (en if en else ar)
 
 def toggle_dark():
     st.session_state.dark_mode = not st.session_state.dark_mode
-    add_notification(f"الوضع {'المظلم' if st.session_state.dark_mode else 'الفاتح'}", "info")
+    add_notification(t("تم تغيير المظهر", "Theme changed"), "info")
 
 def toggle_lang():
     st.session_state.language = 'en' if st.session_state.language == 'ar' else 'ar'
-    add_notification(f"Language switched to {'English' if st.session_state.language == 'en' else 'العربية'}", "info")
+    add_notification(t("تم تغيير اللغة", "Language changed"), "info")
 
 def logout():
     st.session_state.logged_in = False
     st.session_state.user_role = None
-    add_notification("تم تسجيل الخروج", "info")
+    add_notification(t("تم تسجيل الخروج", "Logged out"), "info")
 
-def get_property_data():
+def get_data():
     return st.session_state.property_data
 
-def update_property_data(key, value):
+def update_data(key, value):
     st.session_state.property_data[key] = value
-    add_notification(f"تم تحديث {key}", "success")
+    add_notification(f"{t('تم تحديث', 'Updated')} {key}", "success")
+
+def refresh_live_data():
+    """تحديث البيانات الحية (محاكاة تغيرات عشوائية)"""
+    data = get_data()
+    # تحديث أسعار المتر بشكل عشوائي
+    new_price = data["current_area_price"] + random.randint(-100, 150)
+    data["current_area_price"] = max(3000, new_price)
+    # إضافة سعر جديد للتاريخ
+    new_history = data["area_price_history"].copy()
+    new_row = pd.DataFrame({"التاريخ": [datetime.now()], "السعر": [data["current_area_price"]]})
+    data["area_price_history"] = pd.concat([new_history, new_row], ignore_index=True).tail(12)
+    # تحديث التكاليف (محاكاة)
+    new_cost = random.randint(1000, 5000)
+    new_cost_row = pd.DataFrame({"التاريخ": [datetime.now()], "النوع": ["فواتير"], "المبلغ": [new_cost], "الوصف": ["تحديث تلقائي"]})
+    data["costs"] = pd.concat([data["costs"], new_cost_row], ignore_index=True).tail(10)
+    update_data("current_area_price", data["current_area_price"])
+    update_data("area_price_history", data["area_price_history"])
+    update_data("costs", data["costs"])
+    st.session_state.last_update = datetime.now()
+    add_notification(t("تم تحديث البيانات الحية", "Live data refreshed"), "success")
 
 # ==========================================
-# 4. CSS الاحترافي (دعم الوضع المظلم)
+# CSS احترافي
 # ==========================================
 def load_css():
     bg = "#0f172a" if st.session_state.dark_mode else "#f1f5f9"
-    card_bg = "#1e293b" if st.session_state.dark_mode else "#ffffff"
+    card = "#1e293b" if st.session_state.dark_mode else "#ffffff"
     text = "#f8fafc" if st.session_state.dark_mode else "#0f172a"
-    border_color = "#3b82f6"
+    border = "#3b82f6"
     return f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
-    * {{
-        font-family: 'Cairo', sans-serif;
-        direction: rtl;
-        text-align: right;
-    }}
-    .stApp {{
-        background-color: {bg};
-        color: {text};
-    }}
+    * {{ font-family: 'Cairo', sans-serif; direction: rtl; text-align: right; }}
+    .stApp {{ background-color: {bg}; color: {text}; }}
     div[data-testid="stMetric"] {{
-        background-color: {card_bg};
-        padding: 1.2rem;
+        background-color: {card};
+        padding: 1rem;
         border-radius: 1rem;
-        border-right: 5px solid {border_color};
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transition: all 0.3s;
+        border-right: 5px solid {border};
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transition: 0.2s;
     }}
-    div[data-testid="stMetric"]:hover {{
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }}
+    div[data-testid="stMetric"]:hover {{ transform: translateY(-3px); }}
     .stButton>button {{
         background: linear-gradient(90deg, #1e3a8a, #3b82f6);
         color: white;
         border: none;
         border-radius: 0.75rem;
-        padding: 0.5rem 1rem;
         font-weight: 600;
         transition: 0.2s;
     }}
-    .stButton>button:hover {{
-        transform: scale(1.02);
-        box-shadow: 0 4px 12px rgba(59,130,246,0.4);
-    }}
-    .stDataFrame, .stTable {{
-        border-radius: 1rem;
-        overflow: hidden;
-    }}
+    .stButton>button:hover {{ transform: scale(1.02); }}
+    .stDataFrame, .stTable {{ border-radius: 1rem; overflow: hidden; }}
     </style>
     """
 
 # ==========================================
-# 5. شاشة تسجيل الدخول
+# شاشة تسجيل الدخول
 # ==========================================
 def login_screen():
     st.markdown("<div style='text-align:center'><h1>🏢 Drones Crafters</h1><h3>نظام إدارة العقارات المتكامل</h3></div>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1,2,1])
     with col2:
         email = st.text_input(t("البريد الإلكتروني", "Email"))
         password = st.text_input(t("كلمة المرور", "Password"), type="password")
@@ -202,27 +239,29 @@ def login_screen():
                 st.rerun()
             else:
                 st.error(t("بيانات غير صحيحة", "Invalid credentials"))
-        st.caption("Demo: admin@drones.com / admin123  |  owner1@assets.com / pass1")
+        st.caption("Demo: admin@drones.com / admin123  |  manager1@assets.com / pass1")
 
 # ==========================================
-# 6. الشريط العلوي (أيقونات)
+# الشريط العلوي المتقدم
 # ==========================================
 def top_bar():
-    col1, col2, col3, col4, col5, col6 = st.columns([2.5, 1, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5, col6, col7 = st.columns([2,1,1,1,1,1,1])
     with col1:
-        st.markdown(f"### 🏢 {st.session_state.tenants[st.session_state.current_tenant]['name']}")
+        st.markdown(f"### {st.session_state.tenants[st.session_state.current_tenant]['logo']} {st.session_state.tenants[st.session_state.current_tenant]['name']}")
     with col2:
-        st.button("🌙" if not st.session_state.dark_mode else "☀️", on_click=toggle_dark, help=t("تغيير المظهر"))
+        st.caption(f"🕒 {st.session_state.last_update.strftime('%H:%M:%S')}")
     with col3:
-        st.button("🇸🇦" if st.session_state.language=='ar' else "🇬🇧", on_click=toggle_lang, help=t("تغيير اللغة"))
+        st.button("🌙" if not st.session_state.dark_mode else "☀️", on_click=toggle_dark, help=t("المظهر"))
     with col4:
+        st.button("🇸🇦" if st.session_state.language=='ar' else "🇬🇧", on_click=toggle_lang, help=t("اللغة"))
+    with col5:
         unread = sum(1 for n in st.session_state.notifications if not n.get("read", False))
         if st.button(f"🔔 {unread}" if unread else "🔔", help=t("الإشعارات")):
             st.session_state.show_notif = not st.session_state.get("show_notif", False)
-    with col5:
-        st.markdown(f"👤 {st.session_state.user_role}")
     with col6:
-        st.button("🚪", on_click=logout, help=t("تسجيل الخروج"))
+        st.markdown(f"👤 {st.session_state.user_role}")
+    with col7:
+        st.button("🚪", on_click=logout, help=t("خروج"))
     if st.session_state.get("show_notif", False):
         with st.expander(t("الإشعارات", "Notifications"), expanded=True):
             for n in st.session_state.notifications[:10]:
@@ -233,7 +272,7 @@ def top_bar():
                 st.rerun()
 
 # ==========================================
-# 7. القائمة الجانبية (14 خدمة)
+# القائمة الجانبية (14 خدمة)
 # ==========================================
 def sidebar_menu():
     with st.sidebar:
@@ -247,14 +286,12 @@ def sidebar_menu():
                 st.session_state.current_tenant = sel
                 st.rerun()
         st.divider()
-        # الخدمات الأربعة عشر
         services = [
             "لوحة القيادة", "إدارة الصكوك", "الرفع المساحي", "معرض الصور",
             "الموقع على الخريطة", "التكاليف والفواتير", "متطلبات العقار",
             "سعر المتر بالمنطقة", "تحليل الذكاء الاصطناعي", "التقارير الذكية",
             "إدارة العقود", "الصيانة", "المخاطر والامتثال", "الإشعارات"
         ]
-        # تقييد حسب الدور
         if st.session_state.user_role == "Viewer":
             allowed = services[:5] + services[8:10] + services[13:14]
             services = [s for s in services if s in allowed]
@@ -262,166 +299,218 @@ def sidebar_menu():
                           index=services.index(st.session_state.selected_service) if st.session_state.selected_service in services else 0)
         st.session_state.selected_service = choice
         st.divider()
-        if st.button("🔄 تحديث البيانات", use_container_width=True):
-            # محاكاة تحديث البيانات
-            st.cache_data.clear()
-            add_notification("تم تحديث البيانات", "success")
-            st.rerun()
-        st.caption("© 2025 Drones Crafters - v6.0")
+        col_refresh, col_auto = st.columns(2)
+        with col_refresh:
+            if st.button("🔄 تحديث", use_container_width=True):
+                refresh_live_data()
+                st.rerun()
+        with col_auto:
+            st.session_state.auto_refresh = st.checkbox(t("تلقائي"), value=st.session_state.auto_refresh)
+        if st.session_state.auto_refresh:
+            st.caption(t("تحديث كل 30 ثانية"))
+            # تحديث تلقائي بسيط باستخدام time.sleep في حلقة (ليس مثاليًا لكن للعرض)
+            # بدلاً من ذلك، نستخدم st.rerun بعد فترة
+            # نضيف تأخير بسيط عبر session state timer
+            if 'refresh_counter' not in st.session_state:
+                st.session_state.refresh_counter = 0
+            st.session_state.refresh_counter += 1
+            if st.session_state.refresh_counter % 30 == 0:
+                refresh_live_data()
+                st.rerun()
+        st.caption("© 2025 Drones Crafters - v7.0")
 
 # ==========================================
-# 8. وظائف الخدمات التفصيلية
+# وظائف الخدمات المحسنة
 # ==========================================
 def render_dashboard():
-    data = get_property_data()
+    data = get_data()
     col1, col2, col3, col4 = st.columns(4)
     col1.metric(t("إجمالي قيمة الأصول"), "2.4 مليار ريال", "+4.2%")
     col2.metric(t("عدد الصكوك"), len(data["deeds"]), "+2")
-    col3.metric(t("متوسط سعر المتر"), f"{data['area_price']:,} ريال", "+3%")
-    col4.metric(t("تكاليف الشهر"), f"{data['costs']['المبلغ'].sum():,.0f} ريال", "-2%")
+    col3.metric(t("متوسط سعر المتر"), f"{data['current_area_price']:,} ريال", "+3%")
+    total_costs = data["costs"]["المبلغ"].sum()
+    col4.metric(t("إجمالي التكاليف"), f"{total_costs:,.0f} ريال", "-5%")
     st.divider()
     # رسم بياني لتوزيع التكاليف
-    fig = px.pie(data["costs"], values="المبلغ", names="النوع", title=t("توزيع التكاليف"))
-    st.plotly_chart(fig, use_container_width=True)
+    fig_cost = px.bar(data["costs"], x="التاريخ", y="المبلغ", color="النوع", title=t("التكاليف الشهرية"))
+    st.plotly_chart(fig_cost, use_container_width=True)
+    # مؤشرات سريعة
+    st.subheader(t("حالة المتطلبات"))
+    req_status = data["requirements"]["الحالة"].value_counts().reset_index()
+    req_status.columns = ["الحالة", "العدد"]
+    fig_req = px.pie(req_status, names="الحالة", values="العدد", title=t("نسبة إنجاز المتطلبات"))
+    st.plotly_chart(fig_req, use_container_width=True)
 
 def render_deeds():
-    data = get_property_data()
-    st.subheader(t("إدارة الصكوك"))
+    data = get_data()
+    st.subheader(t("إدارة الصكوك والوثائق"))
     edited = st.data_editor(data["deeds"], use_container_width=True, num_rows="dynamic")
     if st.button(t("حفظ التغييرات")):
-        update_property_data("deeds", edited)
+        update_data("deeds", edited)
         st.success(t("تم الحفظ"))
 
 def render_survey():
     st.subheader(t("الرفع المساحي"))
-    st.markdown(t("يمكنك رفع ملف مساحي (GeoJSON) أو رسم المضلع يدوياً"))
+    st.markdown(t("يمكنك رفع ملف GeoJSON أو إدخال إحداثيات المضلع"))
     uploaded = st.file_uploader(t("اختر ملف GeoJSON"), type=["geojson", "json"])
     if uploaded:
-        data = json.load(uploaded)
-        st.success(t("تم رفع الملف بنجاح"))
-        st.json(data)
-    # خريطة تفاعلية لرسم مضلع بسيط (محاكاة)
-    st.markdown("#### " + t("رسم حدود العقار"))
-    lat = st.number_input("خط العرض (Latitude)", value=24.774265)
-    lon = st.number_input("خط الطول (Longitude)", value=46.738586)
-    st.map(pd.DataFrame({"lat": [lat], "lon": [lon]}))
+        try:
+            geojson = json.load(uploaded)
+            st.success(t("تم رفع الملف بنجاح"))
+            st.json(geojson)
+        except:
+            st.error(t("خطأ في قراءة الملف"))
+    # رسم مضلع تفاعلي باستخدام Plotly
+    data = get_data()
+    polygon = data["survey_polygon"]
+    fig = go.Figure()
+    lons, lats = zip(*polygon)
+    fig.add_trace(go.Scattermapbox(
+        mode="lines+markers",
+        lon=lons,
+        lat=lats,
+        marker={'size': 10},
+        fill="toself",
+        fillcolor="rgba(59,130,246,0.3)",
+        line=dict(width=2)
+    ))
+    fig.update_layout(
+        mapbox=dict(style="open-street-map", center=dict(lat=24.775, lon=46.738), zoom=14),
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=500
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 def render_images():
     st.subheader(t("معرض الصور"))
-    data = get_property_data()
+    data = get_data()
     cols = st.columns(3)
     for i, img in enumerate(data["images"]):
         with cols[i % 3]:
             st.image(img, use_container_width=True)
     uploaded = st.file_uploader(t("إضافة صورة جديدة"), type=["jpg", "png", "jpeg"])
     if uploaded:
-        st.image(uploaded, caption="الصورة المرفوعة", use_container_width=True)
+        st.image(uploaded, caption=t("الصورة المرفوعة"), use_container_width=True)
         if st.button(t("حفظ الصورة")):
-            add_notification(t("تمت إضافة الصورة"), "success")
+            new_images = data["images"] + [uploaded.name]  # محاكاة
+            update_data("images", new_images)
+            st.rerun()
 
 def render_location():
     st.subheader(t("الموقع على الخريطة"))
-    data = get_property_data()
+    data = get_data()
     lat = data["location"]["lat"]
     lon = data["location"]["lon"]
-    st.map(pd.DataFrame({"lat": [lat], "lon": [lon]}))
+    df = pd.DataFrame({"lat": [lat], "lon": [lon]})
+    st.map(df)
     with st.expander(t("تعديل الموقع")):
         new_lat = st.number_input("Latitude", value=lat)
         new_lon = st.number_input("Longitude", value=lon)
         if st.button(t("تحديث")):
-            update_property_data("location", {"lat": new_lat, "lon": new_lon})
+            update_data("location", {"lat": new_lat, "lon": new_lon})
             st.rerun()
 
 def render_costs():
     st.subheader(t("التكاليف والفواتير"))
-    data = get_property_data()
+    data = get_data()
     tab1, tab2 = st.tabs([t("الفواتير"), t("الصيانة")])
     with tab1:
         edited_costs = st.data_editor(data["costs"], use_container_width=True, num_rows="dynamic")
         if st.button(t("حفظ الفواتير")):
-            update_property_data("costs", edited_costs)
+            update_data("costs", edited_costs)
     with tab2:
         edited_maint = st.data_editor(data["maintenance"], use_container_width=True, num_rows="dynamic")
         if st.button(t("حفظ الصيانة")):
-            update_property_data("maintenance", edited_maint)
-    # إجمالي التكاليف
+            update_data("maintenance", edited_maint)
     total = data["costs"]["المبلغ"].sum() + data["maintenance"]["التكلفة"].sum()
     st.metric(t("إجمالي التكاليف"), f"{total:,.0f} ريال")
 
 def render_requirements():
     st.subheader(t("متطلبات العقار"))
-    data = get_property_data()
+    data = get_data()
     edited = st.data_editor(data["requirements"], use_container_width=True, num_rows="dynamic")
     if st.button(t("حفظ المتطلبات")):
-        update_property_data("requirements", edited)
-    st.progress(0.4, text=t("نسبة الإنجاز: 40%"))
+        update_data("requirements", edited)
+    # نسبة الإنجاز
+    completed = len(data["requirements"][data["requirements"]["الحالة"] == "تم"])
+    progress = completed / len(data["requirements"]) if len(data["requirements"]) > 0 else 0
+    st.progress(progress, text=t(f"نسبة الإنجاز: {progress*100:.0f}%"))
 
 def render_area_price():
     st.subheader(t("سعر المتر في المنطقة"))
-    data = get_property_data()
-    current_price = data["area_price"]
-    new_price = st.number_input(t("سعر المتر الحالي (ريال)"), value=current_price, step=100)
+    data = get_data()
+    current = data["current_area_price"]
+    new_price = st.number_input(t("سعر المتر الحالي (ريال)"), value=current, step=50)
     if st.button(t("تحديث السعر")):
-        update_property_data("area_price", new_price)
-        add_notification(t("تم تحديث سعر المتر"), "success")
-    # رسم بياني لأسعار المنطقة (محاكاة)
-    price_history = pd.DataFrame({
-        "الشهر": ["يناير", "فبراير", "مارس", "أبريل"],
-        "السعر": [4000, 4150, new_price, new_price+50]
-    })
-    fig = px.line(price_history, x="الشهر", y="السعر", title=t("اتجاه الأسعار"))
+        update_data("current_area_price", new_price)
+        # إضافة إلى التاريخ
+        new_history = data["area_price_history"].copy()
+        new_row = pd.DataFrame({"التاريخ": [datetime.now()], "السعر": [new_price]})
+        update_data("area_price_history", pd.concat([new_history, new_row], ignore_index=True).tail(12))
+        st.rerun()
+    # رسم بياني تاريخي
+    fig = px.line(data["area_price_history"], x="التاريخ", y="السعر", title=t("اتجاه أسعار المتر"))
     st.plotly_chart(fig, use_container_width=True)
 
 def render_ai_analysis():
     st.subheader(t("تحليل الذكاء الاصطناعي"))
-    data = get_property_data()
+    data = get_data()
     # تقدير القيمة السوقية
-    area_total = data["deeds"]["المساحة (م²)"].sum()
-    estimated_value = area_total * data["area_price"] * 1.05  # 5% علاوة
+    total_area = data["deeds"]["المساحة (م²)"].sum()
+    estimated_value = total_area * data["current_area_price"] * 1.05  # علاوة 5%
     st.metric(t("القيمة السوقية المقدرة"), f"{estimated_value:,.0f} ريال", delta="+5%")
+    # تنبؤ بالصيانة باستخدام نموذج بسيط (إذا كان sklearn متاح)
+    if SKLEARN_AVAILABLE and len(data["maintenance"]) > 2:
+        try:
+            maint = data["maintenance"].copy()
+            maint["days"] = (pd.to_datetime(maint["التاريخ"]) - pd.to_datetime("2024-01-01")).dt.days
+            X = maint[["days"]].values
+            y = maint["التكلفة"].values
+            model = LinearRegression().fit(X, y)
+            future_days = np.array([[max(X)[0] + 30], [max(X)[0] + 60]])
+            pred = model.predict(future_days)
+            st.write(t("التنبؤ بتكلفة الصيانة للشهرين القادمين:"))
+            st.line_chart(pd.Series(pred, index=["شهر 1", "شهر 2"]))
+        except:
+            st.warning(t("لا توجد بيانات كافية للتنبؤ"))
+    else:
+        st.info(t("تمكين sklearn لتحليل تنبؤي أفضل"))
     # تحليل الصور (محاكاة)
     st.markdown("#### " + t("تحليل الصور"))
-    st.info(t("تم اكتشاف حالة جيدة للعقار بنسبة 92%"))
-    # تنبؤ بالصيانة
-    st.markdown("#### " + t("التنبؤ بالصيانة"))
-    st.warning(t("من المتوقع حاجة للصيانة خلال 3 أشهر (تكلفة تقديرية 5,000 ريال)"))
-    # حفظ التحليل
-    if st.button(t("تحديث التحليل")):
-        update_property_data("ai_analysis", {"value": estimated_value, "condition": "جيد"})
-        st.success(t("تم تحديث التحليل"))
+    st.success(t("تم اكتشاف حالة جيدة للعقار بنسبة 92%"))
+    # توصيات
+    st.markdown("#### " + t("توصيات"))
+    st.info(t("زيادة سعر الإيجار بنسبة 3% يتماشى مع السوق"))
 
 def render_reports():
     st.subheader(t("التقارير الذكية"))
-    report_type = st.selectbox(t("نوع التقرير"), [t("ملخص العقار"), t("التكاليف"), t("المتطلبات")])
-    data = get_property_data()
+    report_type = st.selectbox(t("نوع التقرير"), [t("ملخص العقار"), t("التكاليف"), t("المتطلبات"), t("سعر المتر")])
+    data = get_data()
     if report_type == t("ملخص العقار"):
         st.dataframe(data["deeds"])
+        csv = data["deeds"].to_csv().encode()
     elif report_type == t("التكاليف"):
         st.dataframe(data["costs"])
-    else:
+        csv = data["costs"].to_csv().encode()
+    elif report_type == t("المتطلبات"):
         st.dataframe(data["requirements"])
-    # تصدير CSV
-    csv = data["deeds"].to_csv().encode()
-    st.download_button(t("تحميل التقرير (CSV)"), csv, "report.csv")
+        csv = data["requirements"].to_csv().encode()
+    else:
+        st.dataframe(data["area_price_history"])
+        csv = data["area_price_history"].to_csv().encode()
+    st.download_button(t("تحميل التقرير (CSV)"), csv, f"report_{report_type}.csv")
 
 def render_contracts():
     st.subheader(t("إدارة العقود"))
-    # محاكاة عقود الإيجار
-    if 'contracts' not in get_property_data():
-        update_property_data("contracts", pd.DataFrame({
-            "المستأجر": ["شركة الأفق", "مؤسسة البناء"],
-            "تاريخ البدء": ["2024-01-01", "2024-02-01"],
-            "تاريخ الانتهاء": ["2025-01-01", "2025-02-01"],
-            "الإيجار الشهري": [45000, 32000]
-        }))
-    data = get_property_data()
-    edited = st.data_editor(data.get("contracts", pd.DataFrame()), use_container_width=True, num_rows="dynamic")
+    data = get_data()
+    edited = st.data_editor(data["contracts"], use_container_width=True, num_rows="dynamic")
     if st.button(t("حفظ العقود")):
-        update_property_data("contracts", edited)
+        update_data("contracts", edited)
+        st.success(t("تم الحفظ"))
 
 def render_maintenance():
     st.subheader(t("الصيانة"))
-    data = get_property_data()
+    data = get_data()
     st.dataframe(data["maintenance"], use_container_width=True)
     with st.form("add_maintenance"):
         col1, col2 = st.columns(2)
@@ -429,50 +518,55 @@ def render_maintenance():
             action = st.text_input(t("نوع العمل"))
             cost = st.number_input(t("التكلفة"), min_value=0)
         with col2:
-            status = st.selectbox(t("الحالة"), ["قيد التنفيذ", "تم", "معلق"])
-            date = st.date_input(t("التاريخ"))
+            status = st.selectbox(t("الحالة"), ["قيد التنفيذ", "تم", "معلق", "مجدول"])
+            date = st.date_input(t("التاريخ"), value=datetime.now())
         if st.form_submit_button(t("إضافة")):
             new_row = pd.DataFrame({"التاريخ": [date], "العمل": [action], "التكلفة": [cost], "الحالة": [status]})
             updated = pd.concat([data["maintenance"], new_row], ignore_index=True)
-            update_property_data("maintenance", updated)
+            update_data("maintenance", updated)
             st.rerun()
 
 def render_risk_compliance():
     st.subheader(t("المخاطر والامتثال"))
-    # محاكاة قائمة المخاطر
+    # مصفوفة المخاطر
     risks = pd.DataFrame({
-        "الخطر": ["تقلبات السوق", "مخاطر الائتمان", "المخاطر التشغيلية"],
-        "الاحتمال (%)": [30, 20, 45],
-        "الأثر (1-5)": [4, 3, 3],
-        "نقطة المخاطرة": [120, 60, 135]
+        "الخطر": ["تقلبات السوق", "مخاطر الائتمان", "المخاطر التشغيلية", "مخاطر قانونية"],
+        "الاحتمال (%)": [30, 20, 45, 15],
+        "الأثر (1-5)": [4, 3, 3, 4],
+        "نقطة المخاطرة": [120, 60, 135, 60]
     })
     fig = px.bar(risks, x="الخطر", y="نقطة المخاطرة", color="نقطة المخاطرة", title=t("مصفوفة المخاطر"))
     st.plotly_chart(fig, use_container_width=True)
-    # الامتثال
+    # التراخيص
     st.markdown("#### " + t("التراخيص والامتثال"))
     licenses = pd.DataFrame({
-        "الترخيص": ["رخصة بناء", "رخصة تشغيل", "دفاع مدني"],
-        "تاريخ الانتهاء": ["2025-06-01", "2024-12-31", "2024-10-20"],
-        "الحالة": ["ساري", "ينتهي قريباً", "منتهي"]
+        "الترخيص": ["رخصة بناء", "رخصة تشغيل", "دفاع مدني", "بيئة"],
+        "تاريخ الانتهاء": ["2025-06-01", "2024-12-31", "2024-10-20", "2025-03-01"],
+        "الحالة": ["ساري", "ينتهي قريباً", "منتهي", "ساري"]
     })
     st.dataframe(licenses)
     if any(licenses["الحالة"] == "منتهي"):
         st.error(t("يوجد تراخيص منتهية! يرجى التجديد فوراً."))
+    if any(licenses["الحالة"] == "ينتهي قريباً"):
+        st.warning(t("بعض التراخيص على وشك الانتهاء"))
 
 def render_notifications_center():
     st.subheader(t("مركز الإشعارات"))
-    data = get_property_data()
-    alerts = pd.DataFrame(data.get("alerts", []))
-    if not alerts.empty:
-        st.dataframe(alerts)
-    else:
-        st.info(t("لا توجد إشعارات حالية"))
-    if st.button(t("إضافة إشعار تجريبي")):
-        add_notification(t("هذا إشعار تجريبي"), "info")
-        st.rerun()
+    data = get_data()
+    # عرض إشعارات النظام
+    st.markdown("#### " + t("إشعارات النظام"))
+    for n in st.session_state.notifications[:20]:
+        st.write(f"**{n['time']}** - {n['message']}")
+    # إضافة إشعار جديد
+    with st.form("new_notif"):
+        msg = st.text_input(t("رسالة جديدة"))
+        typ = st.selectbox(t("النوع"), ["info", "success", "warning"])
+        if st.form_submit_button(t("إضافة إشعار")):
+            add_notification(msg, typ)
+            st.rerun()
 
 # ==========================================
-# 9. ربط الخدمات بالدوال
+# التشغيل الرئيسي
 # ==========================================
 def main():
     if not st.session_state.logged_in:
@@ -498,10 +592,7 @@ def main():
         "المخاطر والامتثال": render_risk_compliance,
         "الإشعارات": render_notifications_center,
     }
-    if service in service_map:
-        service_map[service]()
-    else:
-        render_dashboard()
+    service_map.get(service, render_dashboard)()
 
 if __name__ == "__main__":
     main()
