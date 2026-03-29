@@ -14,7 +14,7 @@ from PIL import Image
 st.set_page_config(layout="wide", page_title="Drones Crafters - Real Estate", page_icon="🏢")
 
 # ==========================================
-# تهيئة الحالة الشاملة
+# تهيئة الحالة
 # ==========================================
 def init():
     if 'dark_mode' not in st.session_state:
@@ -44,7 +44,6 @@ def init():
         }
     if 'property_data' not in st.session_state:
         st.session_state.property_data = {
-            # الخدمة 1: صكوك
             "deeds": pd.DataFrame({
                 "رقم الصك": ["123/أ", "456/ب"],
                 "المالك": ["شركة أصول الرياض", "صندوق الاستثمار"],
@@ -52,19 +51,15 @@ def init():
                 "المساحة (م²)": [2500, 4300],
                 "تاريخ الإصدار": ["2020-01-01", "2021-03-15"]
             }),
-            # الخدمة 2: الرفع المساحي
             "survey": {
                 "coordinates": [[46.735, 24.772], [46.742, 24.772], [46.742, 24.778], [46.735, 24.778], [46.735, 24.772]],
                 "area_m2": 0.0
             },
-            # الخدمة 3: الصور
             "images": [
                 "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=300",
                 "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=300"
             ],
-            # الخدمة 4: الموقع على الخريطة
             "location": {"lat": 24.774265, "lon": 46.738586},
-            # الخدمة 5: تكاليف العقار (فواتير وصيانة)
             "costs": pd.DataFrame({
                 "التاريخ": ["2024-01-15", "2024-02-20"],
                 "النوع": ["فواتير", "صيانة"],
@@ -77,18 +72,14 @@ def init():
                 "التكلفة": [2000, 4500],
                 "الحالة": ["تم", "قيد التنفيذ"]
             }),
-            # الخدمة 6: متطلبات العقار
             "requirements": pd.DataFrame({
                 "المتطلب": ["تحديد المخطط", "رخصة بناء"],
                 "الأولوية": ["عالية", "متوسطة"],
                 "الموعد": ["2024-06-01", "2024-07-15"],
                 "الحالة": ["قيد التنفيذ", "معلق"]
             }),
-            # الخدمة 7: سعر المتر في المنطقة
             "area_price": 4200,
-            # الخدمة 8: تحليل الذكاء الاصطناعي
             "ai_analysis": {},
-            # خدمات إضافية (لتصبح 14 خدمة)
             "contracts": pd.DataFrame({
                 "المستأجر": ["شركة الأفق", "مؤسسة البناء"],
                 "تاريخ البدء": ["2024-01-01", "2024-02-01"],
@@ -97,7 +88,7 @@ def init():
             }),
             "alerts": [{"التاريخ": "2024-12-15", "الرسالة": "انتهاء رخصة تشغيل", "النوع": "تحذير"}]
         }
-    # حساب المساحة الأولية للمضلع
+    # حساب المساحة
     coords = st.session_state.property_data["survey"]["coordinates"]
     area = 0.0
     n = len(coords)
@@ -225,7 +216,7 @@ def top_bar():
                 st.rerun()
 
 # ==========================================
-# القائمة الجانبية (14 خدمة)
+# القائمة الجانبية (14 خدمة - تظهر جميعها)
 # ==========================================
 def sidebar_menu():
     with st.sidebar:
@@ -239,255 +230,40 @@ def sidebar_menu():
                 st.session_state.current_tenant = sel
                 st.rerun()
         st.divider()
-        # الخدمات الأساسية (8) + الإضافية (6) = 14
-        services = {
-            "📊 لوحة القيادة": "الرئيسية",
-            "📜 صكوك (1)": "إدارة الصكوك",
-            "🗺️ رفع مساحي (2)": "الرفع المساحي",
-            "🖼️ صور (3)": "معرض الصور",
-            "📍 موقع على خريطة (4)": "الموقع على الخريطة",
-            "💰 تكاليف العقار (5)": "التكاليف والفواتير",
-            "✅ متطلبات العقار (6)": "متطلبات العقار",
-            "📊 سعر المتر بالمنطقة (7)": "سعر المتر بالمنطقة",
-            "🤖 تحليل الذكاء الاصطناعي (8)": "تحليل الذكاء الاصطناعي",
-            "📄 إدارة العقود": "إدارة العقود",
-            "🔧 الصيانة": "الصيانة",
-            "⚠️ المخاطر والامتثال": "المخاطر والامتثال",
-            "📑 التقارير الذكية": "التقارير الذكية",
-            "🔔 مركز الإشعارات": "مركز الإشعارات"
-        }
-        allowed = []
+        # قائمة الخدمات (14 خدمة)
+        services_list = [
+            ("🏠 الرئيسية", "الرئيسية"),
+            ("📜 1. صكوك", "إدارة الصكوك"),
+            ("🗺️ 2. رفع مساحي", "الرفع المساحي"),
+            ("🖼️ 3. صور", "معرض الصور"),
+            ("📍 4. موقع على خريطة", "الموقع على الخريطة"),
+            ("💰 5. تكاليف العقار", "التكاليف والفواتير"),
+            ("✅ 6. متطلبات العقار", "متطلبات العقار"),
+            ("📊 7. سعر المتر بالمنطقة", "سعر المتر بالمنطقة"),
+            ("🤖 8. تحليل الذكاء الاصطناعي", "تحليل الذكاء الاصطناعي"),
+            ("📄 9. إدارة العقود", "إدارة العقود"),
+            ("🔧 10. الصيانة", "الصيانة"),
+            ("⚠️ 11. المخاطر والامتثال", "المخاطر والامتثال"),
+            ("📑 12. التقارير الذكية", "التقارير الذكية"),
+            ("🔔 13. مركز الإشعارات", "مركز الإشعارات")
+        ]
+        # تحديد الخدمات حسب الدور
+        allowed_keys = []
         if st.session_state.user_role == "مشاهد":
-            allowed = ["الرئيسية", "إدارة الصكوك", "الموقع على الخريطة", "التقارير الذكية", "مركز الإشعارات"]
+            allowed_keys = ["الرئيسية", "إدارة الصكوك", "الموقع على الخريطة", "التقارير الذكية", "مركز الإشعارات"]
         else:
-            allowed = list(services.values())
-        for display, key in services.items():
-            if key in allowed:
+            allowed_keys = [key for _, key in services_list]
+        for display, key in services_list:
+            if key in allowed_keys:
                 if st.button(display, use_container_width=True, key=key):
                     st.session_state.selected_menu = key
                     st.rerun()
         st.divider()
-        st.caption("© 2025 Drones Crafters - v12.0 (جميع الخدمات مضافة)")
+        st.caption("© 2025 Drones Crafters - جميع الخدمات (14) معروضة")
 
 # ==========================================
-# الخدمة 1: صكوك (مع رفع ملفات)
+# وظائف الخدمات (كل خدمة مع ميزاتها)
 # ==========================================
-def render_deeds():
-    st.subheader("📜 الخدمة 1: إدارة الصكوك")
-    data = get_data()
-    edited = st.data_editor(data["deeds"], use_container_width=True, num_rows="dynamic")
-    if st.button("💾 حفظ بيانات الصكوك"):
-        update_data("deeds", edited)
-    st.file_uploader("رفع ملف صك (PDF/صورة)", type=["pdf", "jpg", "png"], key="deed_upload")
-    st.info("يمكنك إضافة صكوك جديدة مباشرة في الجدول أعلاه.")
-
-# ==========================================
-# الخدمة 2: رفع مساحي (KML/GeoJSON + رسم + حساب مساحة)
-# ==========================================
-def render_survey():
-    st.subheader("🗺️ الخدمة 2: الرفع المساحي")
-    data = get_data()
-    survey = data["survey"]
-    tab1, tab2, tab3 = st.tabs(["رفع ملف (KML/GeoJSON)", "رسم المضلع يدوياً", "عرض الحدود والمساحة"])
-    with tab1:
-        uploaded = st.file_uploader("اختر ملف", type=["kml","geojson","json"])
-        if uploaded:
-            st.success("تم رفع الملف بنجاح")
-    with tab2:
-        coords_text = st.text_area("أدخل الإحداثيات (خط الطول, خط العرض)", 
-                                    value="46.735,24.772\n46.742,24.772\n46.742,24.778\n46.735,24.778")
-        if st.button("تحديث المضلع وحساب المساحة"):
-            points = []
-            for line in coords_text.strip().split("\n"):
-                if "," in line:
-                    lon, lat = line.split(",")
-                    points.append([float(lon.strip()), float(lat.strip())])
-            if points:
-                survey["coordinates"] = points
-                area = 0.0
-                n = len(points)
-                for i in range(n):
-                    x1, y1 = points[i]
-                    x2, y2 = points[(i+1) % n]
-                    area += (x1 * y2 - x2 * y1)
-                area = abs(area) / 2 * 111319.9 * 111319.9
-                survey["area_m2"] = area
-                update_data("survey", survey)
-                st.success(f"تم تحديث المضلع. المساحة: {area:,.0f} م²")
-    with tab3:
-        coords = survey.get("coordinates", [])
-        if coords:
-            df_poly = pd.DataFrame(coords, columns=["lon", "lat"])
-            fig = px.scatter_mapbox(df_poly, lat="lat", lon="lon", zoom=13)
-            fig.add_trace(go.Scattermapbox(
-                lat=df_poly["lat"], lon=df_poly["lon"],
-                mode="lines", fill="toself", line=dict(width=2, color="blue"),
-                name="حدود العقار"
-            ))
-            fig.update_layout(mapbox_style="open-street-map", margin=dict(l=0,r=0,t=30,b=0))
-            st.plotly_chart(fig, use_container_width=True)
-            st.metric("المساحة المحسوبة (م²)", f"{survey.get('area_m2', 0):,.0f}")
-        else:
-            st.info("لم يتم تحديد حدود بعد.")
-
-# ==========================================
-# الخدمة 3: صور (معرض + رفع)
-# ==========================================
-def render_images():
-    st.subheader("🖼️ الخدمة 3: معرض الصور")
-    data = get_data()
-    cols = st.columns(3)
-    for i, img in enumerate(data["images"]):
-        with cols[i % 3]:
-            st.image(img, use_container_width=True)
-    uploaded = st.file_uploader("إضافة صورة جديدة", type=["jpg","png","jpeg"])
-    if uploaded:
-        st.image(uploaded, caption="الصورة المرفوعة", use_container_width=True)
-        if st.button("حفظ الصورة"):
-            add_notification("تمت إضافة الصورة", "success")
-
-# ==========================================
-# الخدمة 4: الموقع على الخريطة
-# ==========================================
-def render_location():
-    st.subheader("📍 الخدمة 4: الموقع على الخريطة")
-    data = get_data()
-    st.map(pd.DataFrame([data["location"]]))
-    with st.expander("تعديل الموقع"):
-        lat = st.number_input("خط العرض", value=data["location"]["lat"], format="%.6f")
-        lon = st.number_input("خط الطول", value=data["location"]["lon"], format="%.6f")
-        if st.button("تحديث"):
-            update_data("location", {"lat": lat, "lon": lon})
-
-# ==========================================
-# الخدمة 5: تكاليف العقار (فواتير + صيانة)
-# ==========================================
-def render_costs():
-    st.subheader("💰 الخدمة 5: تكاليف العقار (فواتير وصيانة)")
-    data = get_data()
-    tab1, tab2 = st.tabs(["الفواتير", "الصيانة"])
-    with tab1:
-        edited = st.data_editor(data["costs"], num_rows="dynamic")
-        if st.button("حفظ الفواتير"):
-            update_data("costs", edited)
-    with tab2:
-        edited2 = st.data_editor(data["maintenance"], num_rows="dynamic")
-        if st.button("حفظ سجلات الصيانة"):
-            update_data("maintenance", edited2)
-    total = data["costs"]["المبلغ"].sum() + data["maintenance"]["التكلفة"].sum()
-    st.metric("إجمالي التكاليف (فواتير + صيانة)", f"{total:,.0f} ريال")
-
-# ==========================================
-# الخدمة 6: متطلبات العقار
-# ==========================================
-def render_requirements():
-    st.subheader("✅ الخدمة 6: متطلبات العقار")
-    data = get_data()
-    edited = st.data_editor(data["requirements"], num_rows="dynamic")
-    if st.button("حفظ المتطلبات"):
-        update_data("requirements", edited)
-    done = sum(data["requirements"]["الحالة"] == "تم")
-    progress = done / len(data["requirements"]) if len(data["requirements"])>0 else 0
-    st.progress(progress, text=f"نسبة الإنجاز: {int(progress*100)}%")
-
-# ==========================================
-# الخدمة 7: سعر المتر في المنطقة
-# ==========================================
-def render_area_price():
-    st.subheader("📊 الخدمة 7: سعر المتر في المنطقة")
-    data = get_data()
-    new_price = st.number_input("سعر المتر الحالي (ريال)", value=data["area_price"], step=100)
-    if st.button("تحديث السعر"):
-        update_data("area_price", new_price)
-    hist = pd.DataFrame({
-        "الشهر": ["يناير", "فبراير", "مارس", "أبريل", "مايو"],
-        "السعر": [4000, 4150, new_price-50, new_price, new_price+100]
-    })
-    fig = px.line(hist, x="الشهر", y="السعر", markers=True, title="اتجاه أسعار المتر في المنطقة")
-    st.plotly_chart(fig, use_container_width=True)
-
-# ==========================================
-# الخدمة 8: تحليل الذكاء الاصطناعي
-# ==========================================
-def render_ai_analysis():
-    st.subheader("🤖 الخدمة 8: تحليل الذكاء الاصطناعي")
-    data = get_data()
-    total_area = data["deeds"]["المساحة (م²)"].sum()
-    estimated_value = total_area * data["area_price"] * 1.05
-    st.metric("القيمة السوقية المقدرة", f"{estimated_value:,.0f} ريال", delta="+5%")
-    st.info("📸 تحليل الصور: حالة العقار جيدة (92%)")
-    st.warning("🔧 تنبؤ الصيانة: صيانة متوقعة خلال 3 أشهر (تكلفة ~5,000 ريال)")
-    st.success("📈 تحليل السوق: المنطقة تشهد طلباً متزايداً، نمو متوقع 7% سنوياً")
-    if st.button("تحديث التحليل"):
-        update_data("ai_analysis", {"value": estimated_value, "condition": "جيد"})
-        st.balloons()
-
-# ==========================================
-# الخدمات الإضافية (9-14)
-# ==========================================
-def render_contracts():
-    data = get_data()
-    st.subheader("📄 إدارة العقود")
-    edited = st.data_editor(data["contracts"], num_rows="dynamic")
-    if st.button("حفظ العقود"):
-        update_data("contracts", edited)
-
-def render_maintenance():
-    data = get_data()
-    st.subheader("🔧 الصيانة")
-    st.dataframe(data["maintenance"])
-    with st.form("add_maint"):
-        col1, col2 = st.columns(2)
-        with col1:
-            work = st.text_input("العمل")
-            cost = st.number_input("التكلفة", min_value=0)
-        with col2:
-            status = st.selectbox("الحالة", ["قيد التنفيذ", "تم", "معلق"])
-            date = st.date_input("التاريخ")
-        if st.form_submit_button("إضافة"):
-            new = pd.DataFrame({"التاريخ":[date], "العمل":[work], "التكلفة":[cost], "الحالة":[status]})
-            updated = pd.concat([data["maintenance"], new], ignore_index=True)
-            update_data("maintenance", updated)
-
-def render_risk():
-    st.subheader("⚠️ المخاطر والامتثال")
-    risks = pd.DataFrame({"الخطر":["تقلبات السوق", "مخاطر الائتمان", "تشغيلية"], "النقطة":[120,60,135]})
-    fig = px.bar(risks, x="الخطر", y="النقطة", color="النقطة", title="مصفوفة المخاطر")
-    st.plotly_chart(fig, use_container_width=True)
-    licenses = pd.DataFrame({
-        "الترخيص": ["رخصة بناء", "رخصة تشغيل", "دفاع مدني"],
-        "تاريخ الانتهاء": ["2025-06-01", "2024-12-31", "2024-10-20"],
-        "الحالة": ["ساري", "ينتهي قريباً", "منتهي"]
-    })
-    st.dataframe(licenses)
-    if any(licenses["الحالة"] == "منتهي"):
-        st.error("يوجد تراخيص منتهية! يرجى التجديد.")
-
-def render_reports():
-    data = get_data()
-    st.subheader("📑 التقارير الذكية")
-    report_type = st.selectbox("نوع التقرير", ["ملخص العقار", "التكاليف", "المتطلبات"])
-    if report_type == "ملخص العقار":
-        st.dataframe(data["deeds"])
-    elif report_type == "التكاليف":
-        st.dataframe(data["costs"])
-    else:
-        st.dataframe(data["requirements"])
-    csv = data["deeds"].to_csv().encode()
-    st.download_button("تحميل التقرير (CSV)", csv, "report.csv")
-
-def render_notifications():
-    st.subheader("🔔 مركز الإشعارات")
-    data = get_data()
-    alerts = pd.DataFrame(data.get("alerts", []))
-    if not alerts.empty:
-        st.dataframe(alerts)
-    else:
-        st.info("لا توجد إشعارات حالية")
-    if st.button("إضافة إشعار تجريبي"):
-        add_notification("إشعار جديد من النظام", "info")
-        st.rerun()
-
 def render_dashboard():
     data = get_data()
     col1, col2, col3, col4 = st.columns(4)
@@ -504,6 +280,184 @@ def render_dashboard():
         fig2 = px.bar(data["maintenance"], x="العمل", y="التكلفة", color="الحالة", title="تكاليف الصيانة")
         st.plotly_chart(fig2, use_container_width=True)
 
+def render_deeds():
+    st.subheader("📜 الخدمة 1: إدارة الصكوك")
+    data = get_data()
+    edited = st.data_editor(data["deeds"], use_container_width=True, num_rows="dynamic")
+    if st.button("💾 حفظ بيانات الصكوك"):
+        update_data("deeds", edited)
+    st.file_uploader("رفع ملف صك (PDF/صورة)", type=["pdf", "jpg", "png"])
+
+def render_survey():
+    st.subheader("🗺️ الخدمة 2: الرفع المساحي")
+    data = get_data()
+    survey = data["survey"]
+    tab1, tab2, tab3 = st.tabs(["رفع ملف", "رسم يدوي", "عرض الحدود"])
+    with tab1:
+        st.file_uploader("رفع KML/GeoJSON", type=["kml","geojson","json"])
+    with tab2:
+        coords_text = st.text_area("الإحداثيات", value="46.735,24.772\n46.742,24.772\n46.742,24.778\n46.735,24.778")
+        if st.button("تحديث وحساب المساحة"):
+            points = []
+            for line in coords_text.strip().split("\n"):
+                if "," in line:
+                    lon, lat = line.split(",")
+                    points.append([float(lon.strip()), float(lat.strip())])
+            if points:
+                survey["coordinates"] = points
+                area = 0.0
+                n = len(points)
+                for i in range(n):
+                    x1, y1 = points[i]
+                    x2, y2 = points[(i+1) % n]
+                    area += (x1 * y2 - x2 * y1)
+                area = abs(area) / 2 * 111319.9 * 111319.9
+                survey["area_m2"] = area
+                update_data("survey", survey)
+                st.success(f"المساحة: {area:,.0f} م²")
+    with tab3:
+        coords = survey.get("coordinates", [])
+        if coords:
+            df_poly = pd.DataFrame(coords, columns=["lon", "lat"])
+            fig = px.scatter_mapbox(df_poly, lat="lat", lon="lon", zoom=13)
+            fig.add_trace(go.Scattermapbox(
+                lat=df_poly["lat"], lon=df_poly["lon"],
+                mode="lines", fill="toself", line=dict(width=2, color="blue")
+            ))
+            fig.update_layout(mapbox_style="open-street-map")
+            st.plotly_chart(fig, use_container_width=True)
+            st.metric("المساحة (م²)", f"{survey.get('area_m2',0):,.0f}")
+
+def render_images():
+    st.subheader("🖼️ الخدمة 3: معرض الصور")
+    data = get_data()
+    cols = st.columns(3)
+    for i, img in enumerate(data["images"][:3]):
+        with cols[i]:
+            st.image(img, use_container_width=True)
+    st.file_uploader("إضافة صورة", type=["jpg","png","jpeg"])
+
+def render_location():
+    st.subheader("📍 الخدمة 4: الموقع على الخريطة")
+    data = get_data()
+    st.map(pd.DataFrame([data["location"]]))
+    with st.expander("تعديل الموقع"):
+        lat = st.number_input("خط العرض", value=data["location"]["lat"], format="%.6f")
+        lon = st.number_input("خط الطول", value=data["location"]["lon"], format="%.6f")
+        if st.button("تحديث"):
+            update_data("location", {"lat": lat, "lon": lon})
+
+def render_costs():
+    st.subheader("💰 الخدمة 5: تكاليف العقار (فواتير وصيانة)")
+    data = get_data()
+    tab1, tab2 = st.tabs(["فواتير", "صيانة"])
+    with tab1:
+        edited = st.data_editor(data["costs"], num_rows="dynamic")
+        if st.button("حفظ الفواتير"):
+            update_data("costs", edited)
+    with tab2:
+        edited2 = st.data_editor(data["maintenance"], num_rows="dynamic")
+        if st.button("حفظ الصيانة"):
+            update_data("maintenance", edited2)
+    total = data["costs"]["المبلغ"].sum() + data["maintenance"]["التكلفة"].sum()
+    st.metric("إجمالي التكاليف", f"{total:,.0f} ريال")
+
+def render_requirements():
+    st.subheader("✅ الخدمة 6: متطلبات العقار")
+    data = get_data()
+    edited = st.data_editor(data["requirements"], num_rows="dynamic")
+    if st.button("حفظ المتطلبات"):
+        update_data("requirements", edited)
+    done = sum(data["requirements"]["الحالة"] == "تم")
+    progress = done / len(data["requirements"]) if len(data["requirements"])>0 else 0
+    st.progress(progress, text=f"نسبة الإنجاز: {int(progress*100)}%")
+
+def render_area_price():
+    st.subheader("📊 الخدمة 7: سعر المتر في المنطقة")
+    data = get_data()
+    new_price = st.number_input("سعر المتر (ريال)", value=data["area_price"], step=100)
+    if st.button("تحديث"):
+        update_data("area_price", new_price)
+    hist = pd.DataFrame({
+        "الشهر": ["يناير", "فبراير", "مارس", "أبريل"],
+        "السعر": [4000, 4150, new_price, new_price+50]
+    })
+    fig = px.line(hist, x="الشهر", y="السعر", markers=True)
+    st.plotly_chart(fig, use_container_width=True)
+
+def render_ai_analysis():
+    st.subheader("🤖 الخدمة 8: تحليل الذكاء الاصطناعي")
+    data = get_data()
+    total_area = data["deeds"]["المساحة (م²)"].sum()
+    estimated = total_area * data["area_price"] * 1.05
+    st.metric("القيمة المقدرة", f"{estimated:,.0f} ريال", "+5%")
+    st.info("تحليل الصور: حالة جيدة (92%)")
+    st.warning("تنبؤ الصيانة: خلال 3 أشهر")
+    st.success("تحليل السوق: نمو 7% سنوياً")
+
+def render_contracts():
+    data = get_data()
+    st.subheader("📄 الخدمة 9: إدارة العقود")
+    edited = st.data_editor(data["contracts"], num_rows="dynamic")
+    if st.button("حفظ"):
+        update_data("contracts", edited)
+
+def render_maintenance():
+    data = get_data()
+    st.subheader("🔧 الخدمة 10: الصيانة")
+    st.dataframe(data["maintenance"])
+    with st.form("add"):
+        col1, col2 = st.columns(2)
+        with col1:
+            work = st.text_input("العمل")
+            cost = st.number_input("التكلفة", min_value=0)
+        with col2:
+            status = st.selectbox("الحالة", ["قيد التنفيذ", "تم", "معلق"])
+            date = st.date_input("التاريخ")
+        if st.form_submit_button("إضافة"):
+            new = pd.DataFrame({"التاريخ":[date], "العمل":[work], "التكلفة":[cost], "الحالة":[status]})
+            updated = pd.concat([data["maintenance"], new], ignore_index=True)
+            update_data("maintenance", updated)
+
+def render_risk():
+    st.subheader("⚠️ الخدمة 11: المخاطر والامتثال")
+    risks = pd.DataFrame({"الخطر":["تقلبات السوق","ائتمان","تشغيلية"], "النقطة":[120,60,135]})
+    fig = px.bar(risks, x="الخطر", y="النقطة", color="النقطة")
+    st.plotly_chart(fig, use_container_width=True)
+    licenses = pd.DataFrame({
+        "الترخيص": ["رخصة بناء", "رخصة تشغيل", "دفاع مدني"],
+        "تاريخ الانتهاء": ["2025-06-01", "2024-12-31", "2024-10-20"],
+        "الحالة": ["ساري", "ينتهي قريباً", "منتهي"]
+    })
+    st.dataframe(licenses)
+    if any(licenses["الحالة"] == "منتهي"):
+        st.error("تراخيص منتهية!")
+
+def render_reports():
+    st.subheader("📑 الخدمة 12: التقارير الذكية")
+    data = get_data()
+    report = st.selectbox("نوع التقرير", ["ملخص العقار", "التكاليف", "المتطلبات"])
+    if report == "ملخص العقار":
+        st.dataframe(data["deeds"])
+    elif report == "التكاليف":
+        st.dataframe(data["costs"])
+    else:
+        st.dataframe(data["requirements"])
+    csv = data["deeds"].to_csv().encode()
+    st.download_button("تحميل CSV", csv, "report.csv")
+
+def render_notifications():
+    st.subheader("🔔 الخدمة 13: مركز الإشعارات")
+    data = get_data()
+    alerts = pd.DataFrame(data.get("alerts", []))
+    if not alerts.empty:
+        st.dataframe(alerts)
+    else:
+        st.info("لا توجد إشعارات")
+    if st.button("إضافة إشعار"):
+        add_notification("إشعار جديد", "info")
+        st.rerun()
+
 # ==========================================
 # التشغيل الرئيسي
 # ==========================================
@@ -515,6 +469,7 @@ def main():
     top_bar()
     sidebar_menu()
     menu = st.session_state.selected_menu
+    # خريطة الخدمات
     if menu == "الرئيسية":
         render_dashboard()
     elif menu == "إدارة الصكوك":
