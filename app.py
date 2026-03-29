@@ -307,29 +307,96 @@ elif choice == "نموذج التقييم الآلي AVM":
         fig_pie.update_layout(font_family="Cairo")
         st.plotly_chart(fig_pie, use_container_width=True)
 # ==========================================
-# 6️⃣ الصيانة التنبؤية
-# ==========================================
 elif choice == "الصيانة التنبؤية":
     st.title("🛠️ نظام إدارة وصيانة الأصول التنبؤي")
+    # -----------------------------
+    #  إضافة أعمدة الصيانة التنبؤية
+    # -----------------------------
+    import pandas as pd
+    from datetime import datetime, timedelta
+    # مثال: إذا لم يكن لديك تاريخ آخر صيانة داخل البيانات
+    if "تاريخ_آخر_صيانة" not in maintenance_df.columns:
+        maintenance_df["تاريخ_آخر_صيانة"] = pd.to_datetime("2024-12-01")
+    # حساب تاريخ الصيانة القادمة (30 يوم)
+    maintenance_df["تاريخ_الصيانة_القادمة"] = (
+        maintenance_df["تاريخ_آخر_صيانة"] + pd.to_timedelta(30, unit="D")
+    )
+    # حساب الأيام المتبقية
+    today = pd.to_datetime(datetime.today().date())
+    maintenance_df["الأيام_المتبقية"] = (
+        maintenance_df["تاريخ_الصيانة_القادمة"] - today
+    ).dt.days
+    # استخراج العقارات التي تحتاج صيانة قريباً (أقل من 7 أيام)
+    upcoming_df = maintenance_df[maintenance_df["الأيام_المتبقية"] <= 7]
+    # -----------------------------
+    # 🔔 تنبيه أعلى الصفحة
+    # -----------------------------
+    if len(upcoming_df) > 0:
+        st.error(f"🔔 يوجد {len(upcoming_df)} عقار/أصل يحتاج صيانة خلال الأيام القادمة!")
+    else:
+        st.success("✔ لا توجد صيانة قريبة خلال الأسبوع القادم.")
+    # -----------------------------
+    # 🔍 جدول الصيانة القريبة
+    # -----------------------------
+    if len(upcoming_df) > 0:
+        st.subheader("📋 الأصول التي تحتاج صيانة قريباً")
+        st.dataframe(
+            upcoming_df[["اسم_الأصل", "تاريخ_الصيانة_القادمة", "الأيام_المتبقية"]],
+            use_container_width=True
+        )
+    st.divider()
+    # -----------------------------
+    # 🔢 المقاييس العلوية
+    # -----------------------------
     c1, c2, c3 = st.columns(3)
     c1.metric("معدل جاهزية الأصول", "94.5%", "+1.5%")
     c2.metric("معدل الأعطال المجدولة", "3.2%", "-1.1%")
     c3.metric("ميزانية الصيانة المستهلكة", "1,500,000 ريال", "-50,000")
     st.divider()
+    # -----------------------------
+    # 📊 الرسوم البيانية
+    # -----------------------------
     col_m1, col_m2 = st.columns([1.5, 1])
     with col_m1:
         st.subheader(" تتبع التكاليف الأسبوعي وحد الأمان للميزانية")
-        # إضافة خط أفق للحد الأقصى للميزانية لإعطاء طابع تحليلي
         fig_maint = go.Figure()
-        fig_maint.add_trace(go.Scatter(x=maintenance_df["الأسبوع"], y=maintenance_df["تكلفة الصيانة"], name="تكلفة الصيانة", line=dict(color="#1E3A8A")))
-        fig_maint.add_trace(go.Scatter(x=maintenance_df["الأسبوع"], y=maintenance_df["تكلفة الإدارة"], name="تكلفة الإدارة", line=dict(color="#64748B")))
-        fig_maint.add_hline(y=500000, line_dash="dash", line_color="red", annotation_text="سقف الميزانية الأسبوعية")
-        fig_maint.update_layout(font_family="Cairo", yaxis_title="التكلفة (ريال)", xaxis_title="الأسبوع تتبعاً")
+        fig_maint.add_trace(go.Scatter(
+            x=maintenance_df["الأسبوع"],
+            y=maintenance_df["تكلفة الصيانة"],
+            name="تكلفة الصيانة",
+            line=dict(color="#1E3A8A")
+        ))
+        fig_maint.add_trace(go.Scatter(
+            x=maintenance_df["الأسبوع"],
+            y=maintenance_df["تكلفة الإدارة"],
+            name="تكلفة الإدارة",
+            line=dict(color="#64748B")
+        ))
+        fig_maint.add_hline(
+            y=500000,
+            line_dash="dash",
+            line_color="red",
+            annotation_text="سقف الميزانية الأسبوعية"
+        )
+        fig_maint.update_layout(
+            font_family="Cairo",
+            yaxis_title="التكلفة (ريال)",
+            xaxis_title="الأسبوع تتبعاً"
+        )
         st.plotly_chart(fig_maint, use_container_width=True)
     with col_m2:
         st.subheader("🧩 توزيع طلبات الصيانة")
-        pie_df = pd.DataFrame({"الفئة": ["إصلاحات طارئة", "صيانة وقائية", "معالجة بلاغات", "خدمات عامة"], "القيمة": [25, 45, 20, 10]})
-        fig_pie_m = px.pie(pie_df, names="الفئة", values="القيمة", hole=0.4, color_discrete_sequence=["#1E3A8A", "#2563EB", "#64748B", "#94A3B8"])
+        pie_df = pd.DataFrame({
+            "الفئة": ["إصلاحات طارئة", "صيانة وقائية", "معالجة بلاغات", "خدمات عامة"],
+            "القيمة": [25, 45, 20, 10]
+        })
+        fig_pie_m = px.pie(
+            pie_df,
+            names="الفئة",
+            values="القيمة",
+            hole=0.4,
+            color_discrete_sequence=["#1E3A8A", "#2563EB", "#64748B", "#94A3B8"]
+        )
         fig_pie_m.update_layout(font_family="Cairo")
         st.plotly_chart(fig_pie_m, use_container_width=True)
 # ==========================================
