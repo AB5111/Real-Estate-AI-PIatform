@@ -307,44 +307,20 @@ elif choice == "نموذج التقييم الآلي AVM":
         fig_pie.update_layout(font_family="Cairo")
         st.plotly_chart(fig_pie, use_container_width=True)
 # ==========================================
-elif choice == "الصيانة التنبؤية":
-    st.title("🛠️ نظام إدارة وصيانة الأصول التنبؤي")
-    # -----------------------------
-    #  إضافة أعمدة الصيانة التنبؤية
-    # -----------------------------
-    import pandas as pd
-    from datetime import datetime, timedelta
-    # مثال: إذا لم يكن لديك تاريخ آخر صيانة داخل البيانات
-    if "تاريخ_آخر_صيانة" not in maintenance_df.columns:
-        maintenance_df["تاريخ_آخر_صيانة"] = pd.to_datetime("2024-12-01")
-    # حساب تاريخ الصيانة القادمة (30 يوم)
-    maintenance_df["تاريخ_الصيانة_القادمة"] = (
-        maintenance_df["تاريخ_آخر_صيانة"] + pd.to_timedelta(30, unit="D")
-    )
-    # حساب الأيام المتبقية
-    today = pd.to_datetime(datetime.today().date())
-    maintenance_df["الأيام_المتبقية"] = (
-        maintenance_df["تاريخ_الصيانة_القادمة"] - today
-    ).dt.days
-    # استخراج العقارات التي تحتاج صيانة قريباً (أقل من 7 أيام)
-    upcoming_df = maintenance_df[maintenance_df["الأيام_المتبقية"] <= 7]
-    # -----------------------------
-    # 🔔 تنبيه أعلى الصفحة
-    # -----------------------------
-    if len(upcoming_df) > 0:
-        st.error(f"🔔 يوجد {len(upcoming_df)} عقار/أصل يحتاج صيانة خلال الأيام القادمة!")
-    else:
-        st.success("✔ لا توجد صيانة قريبة خلال الأسبوع القادم.")
-    # -----------------------------
-    # 🔍 جدول الصيانة القريبة
-    # -----------------------------
-    if len(upcoming_df) > 0:
-        st.subheader("📋 الأصول التي تحتاج صيانة قريباً")
-        st.dataframe(
-            upcoming_df[["اسم_الأصل", "تاريخ_الصيانة_القادمة", "الأيام_المتبقية"]],
-            use_container_width=True
-        )
-    st.divider()
+# -----------------------------
+# 🛠️ معالجة اسم عمود الأصل لتجنب الأخطاء
+# -----------------------------
+possible_name_cols = ["اسم الأصل", "اسم_الأصل", "العقار", "اسم_العقار", "AssetName", "property_name"]
+# البحث عن العمود الصحيح
+asset_col = None
+for col in possible_name_cols:
+    if col in maintenance_df.columns:
+        asset_col = col
+        break
+# إذا لم يوجد أي عمود، نضيف واحد افتراضي
+if asset_col is None:
+    asset_col = "اسم الأصل"
+    maintenance_df[asset_col] = "أصل غير مسمى"
     # -----------------------------
     # 🔢 المقاييس العلوية
     # -----------------------------
